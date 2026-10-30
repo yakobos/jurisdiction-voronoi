@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Drive-time basins — 500 mi around Burns, OR</title>
+<style>
+:root{--bg:#070a0f;--panel:#0f1520;--panel2:#151d2b;--line:#212c3c;--text:#e8eef7;--muted:#8b9cb3;--accent:#4dabf7}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:13.5px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+#app{display:flex;height:100vh;height:100dvh}
+#sidebar{width:340px;flex:0 0 340px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#sbHead{padding:15px 16px 12px;border-bottom:1px solid var(--line)}
+#sbHead h1{margin:0;font-size:15px;font-weight:650;letter-spacing:.01em}
+#sbHead p{margin:3px 0 0;font-size:11.5px;color:var(--muted)}
+#sbBody{flex:1;overflow-y:auto;padding:12px 10px 14px;min-height:0}
+#sbFoot{padding:9px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);line-height:1.55}
+#sbBody::-webkit-scrollbar{width:9px}
+#sbBody::-webkit-scrollbar-thumb{background:#243044;border-radius:9px}
+.stats{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:12px;color:var(--muted);margin:2px 2px 6px}
+.stats b{color:var(--text)}
+h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);margin:16px 8px 7px;font-weight:700}
+.hintInline{text-transform:none;letter-spacing:0;font-weight:500;font-size:10px;opacity:.75}
+.leg{display:grid;grid-template-columns:11px 1fr 30px 44px;align-items:center;gap:8px;width:100%;padding:6px 8px;background:transparent;border:0;border-radius:7px;color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;text-align:left}
+.leg:hover{background:var(--panel2)}
+.leg.off{opacity:.38}
+.leg .dot{width:11px;height:11px;border-radius:3px}
+.leg .jn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg .cnt,.leg .pct{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-size:11.5px}
+.hrow{display:grid;grid-template-columns:11px 1fr auto auto;align-items:center;gap:7px;padding:5px 8px;font-size:12px;border-radius:7px}
+.hrow:hover{background:var(--panel2)}
+.hrow .dot{width:11px;height:11px;border-radius:3px}
+.hrow .hn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c9d6e6}
+.mini{background:transparent;border:1px solid var(--line);color:var(--muted);font:inherit;font-size:10.5px;padding:2px 7px;border-radius:6px;cursor:pointer;text-transform:none;letter-spacing:0}
+.mini:hover{color:var(--text);border-color:#3a4a63}
+.mini.danger:hover{color:#ff8787;border-color:#5a2b2b}
+.empty{margin:4px 8px;font-size:11.5px;color:var(--muted)}
+.sliderBox{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 11px;margin:2px 2px 4px}
+.sliderBox .lab{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:7px}
+.sliderBox .lab b{color:var(--text);font-variant-numeric:tabular-nums}
+.sliderBox input[type=range]{width:100%;margin:0;accent-color:var(--accent);height:16px}
+.sliderBox .ends{display:flex;justify-content:space-between;font-size:9.5px;color:#6b7c92;margin-top:5px;letter-spacing:.02em}
+#mapWrap{position:relative;flex:1;min-width:0;background:radial-gradient(120% 100% at 50% 0%,#0d1522 0%,#070a0f 70%)}
+#map{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.crowCell{fill-opacity:.5;stroke:#04070c;stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
+.pin{stroke:#04070c;stroke-width:1.6;vector-effect:non-scaling-stroke;cursor:pointer}
+.pin:hover{stroke:#fff}
+.pin.custom{stroke:#fff;stroke-dasharray:2 2}
+.ring{fill:none;stroke:#9fd4ff;stroke-width:1.5;stroke-dasharray:6 6;vector-effect:non-scaling-stroke;opacity:.8;pointer-events:none}
+.centerMark{fill:none;stroke:#fff;stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.95;pointer-events:none}
+.labels{fill:#fff;text-anchor:middle;dominant-baseline:middle;font-weight:650;letter-spacing:.01em;paint-order:stroke;stroke:#04070c;stroke-linejoin:round;pointer-events:none}
+.attrib{position:absolute;left:12px;bottom:10px;font-size:9.5px;color:#a8b8cc;opacity:.8;pointer-events:none;text-shadow:0 1px 2px #000;letter-spacing:.02em}
+#tip{position:fixed;z-index:20;max-width:300px;background:#0d1420;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12px;color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0;transform:translateY(4px);transition:opacity .1s,transform .1s;pointer-events:none}
+#tip.on{opacity:1;transform:none}
+#tip .tj{color:var(--muted);font-size:11px;margin-top:2px}
+#tip .tm{color:#9fb2c9;font-size:11px;margin-top:4px;font-variant-numeric:tabular-nums}
+#ctrls{position:absolute;right:14px;bottom:14px;display:flex;flex-direction:column;gap:6px}
+#ctrls button{width:38px;height:34px;border-radius:9px;background:#101827cc;border:1px solid var(--line);color:var(--text);font-size:16px;line-height:1;cursor:pointer;backdrop-filter:blur(6px)}
+#ctrls button:hover{background:#182233}
+#ctrls button.wide{font-size:9px;font-weight:800;letter-spacing:.04em}
+#ctrls button.act{border-color:var(--accent);color:var(--accent)}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#04070bd9;backdrop-filter:blur(3px);z-index:40}
+.modal.open{display:flex}
+.card{width:344px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.card h3{margin:0 0 2px;font-size:14px}
+.coords{margin:0 0 14px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.fld{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:12px;font-weight:700}
+.fld input,.fld select{display:block;width:100%;margin-top:5px;padding:9px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--text);font:inherit;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400}
+.fld input:focus,.fld select:focus{outline:2px solid #2b6cb0;outline-offset:1px}
+.row{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.btn{background:var(--accent);color:#04121f;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:650;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.btn.ghost:hover{color:var(--text)}
+@media (max-width:820px){#sidebar{width:290px;flex-basis:290px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div id="sbHead"><h1>Drive-time basins</h1><p>500 mi radius &middot; Burns, OR</p></div>
+    <div id="sbBody">
+      <div id="stats" class="stats"></div>
+      <div class="sliderBox">
+        <div class="lab"><span>Off-road speed</span><b id="offVal">14 mph</b></div>
+        <input id="offRoad" type="range" min="4" max="40" step="1" value="14">
+        <div class="ends"><span>strong corridors</span><span>near crow-flies</span></div>
+      </div>
+      <h2 class="sec">Jurisdictions <span class="hintInline">click to toggle</span></h2>
+      <div id="legend"></div>
+      <h2 class="sec">Hidden <button id="restoreAll" class="mini">restore all</button></h2>
+      <div id="hiddenList"></div>
+    </div>
+    <div id="sbFoot">Click a dot to hide it &middot; click the map to add a parish<br>Drag to pan &middot; scroll to zoom</div>
+  </aside>
+  <main id="mapWrap">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg">
+      <defs><clipPath id="ringClip"><path id="ringClipPath" d=""/></clipPath></defs>
+      <g id="tileLayer"></g>
+      <rect id="scrim" x="0" y="0" width="1" height="1" fill="#04070c" opacity="0" pointer-events="none"/>
+      <image id="basinImg" clip-path="url(#ringClip)" preserveAspectRatio="none" opacity="0.6" pointer-events="none"></image>
+      <g id="crowLayer" clip-path="url(#ringClip)"></g>
+      <g id="overlay"></g>
+    </svg>
+    <div id="attrib" class="attrib"></div>
+    <div id="tip"></div>
+    <div id="ctrls">
+      <button id="mode" class="wide act" title="Toggle drive-time / crow-flies">DRIVE</button>
+      <button id="prov" class="wide" title="Cycle basemap">SAT</button>
+      <button id="zin" title="Zoom in">+</button>
+      <button id="zout" title="Zoom out">&minus;</button>
+      <button id="zfit" title="Fit to all">&#10530;</button>
+    </div>
+  </main>
+</div>
+<div id="modal" class="modal">
+  <div class="card">
+    <h3>New parish</h3>
+    <p id="mCoords" class="coords"></p>
+    <label class="fld">Name<input id="mName" type="text" maxlength="80" placeholder="St. Tikhon of Zadonsk Mission"></label>
+    <label class="fld">Jurisdiction<select id="mJur"></select></label>
+    <div class="row">
+      <button id="mCancel" class="btn ghost">Cancel</button>
+      <button id="mAdd" class="btn">Add parish</button>
+    </div>
+  </div>
+</div>
+<script>
+/* =====================================================================
+   DRIVE-TIME BASINS  -  single file, no CDN, no build step, file:// ok
+   Basin = argmin over parishes of DRIVE TIME, solved as a multi-source
+   shortest path across a road-speed cost surface.
+   Data: Assembly of Canonical Orthodox Bishops, 500 mi around Burns OR
+   ===================================================================== */
+const CENTER={lat:43.5863,lng:-119.0541};
+const RAW=[
+[1,"St. Jacob of Alaska Mission","OCA","Bend","OR",44.082195,-121.2037763,112.5],
+[2,"The Meeting of Our Lord Mission","OCA","Kuna","ID",43.4894635,-116.4139957,132.4],
+[3,"Holy Transfiguration Church","Antiochian","Meridian","ID",43.61354,-116.3897,133.3],
+[4,"St. Seraphim of Sarov Orthodox Church","ROCOR","Boise","ID",43.6297264,-116.2265446,141.5],
+[5,"Sts. Constantine & Helen Church","GOA","Boise","ID",43.623785,-116.223622,141.6],
+[6,"St. Silouan Orthodox Church","ROCOR","Walla Walla","WA",46.0649119,-118.3251125,174.9],
+[7,"The Dormition of the Theotokos Serbian Mission","Serbian","The Dalles","OR",45.6114002,-121.199452,175.3],
+[8,"Ss. Joachim & Anna Orthodox Mission","Antiochian","Goldendale","WA",45.82248,-120.8255,177.3],
+[9,"St. John Orthodox Mission","ROCOR","Kennewick","WA",46.200571,-119.2794693,181.0],
+[10,"St. Nectarios Mission","GOA","Pasco","WA",46.231941,-119.09671,182.8],
+[11,"St. George Church","GOA","Eugene","OR",44.099195,-123.059608,202.7],
+[12,"St John the Wonderworker Serbian Orthodox Church","Serbian","Eugene","OR",44.0564256,-123.1104724,204.8],
+[13,"New Russian Martyrs Church","ROCOR","Mulino","OR",45.2439222,-122.5829457,208.4],
+[14,"Descent of the Holy Spirit Church","OCA","Oregon City","OR",45.3074397,-122.5694316,210.2],
+[15,"Archangel Gabriel Mission","OCA","Phoenix","OR",42.2824979,-122.817534,210.6],
+[16,"Holy Resurrection Orthodox Church of Salem","GOA","Salem","OR",44.951997,-122.977339,215.8],
+[17,"Church of the Annunciation","OCA","Milwaukie","OR",45.4248643,-122.6054915,216.2],
+[18,"St. George Church","Antiochian","Portland","OR",45.53822,-122.4968,216.6],
+[19,"Falling Asleep of the Ever-Virgin Mary Church","OCA","Portland","OR",45.5194268,-122.5246193,216.8],
+[20,"Holy Cross Orthodox Church","GOA","Roseburg","OR",43.207639,-123.343613,216.9],
+[21,"St Stephen Archdeacon And Protomartyr Serbian Orthodox Church","Serbian","Milwaukie","OR",45.4403601,-122.6352252,218.0],
+[22,"Holy Cross Church","Antiochian","Yakima","WA",46.5868,-120.5159,219.2],
+[23,"St. John the Baptist Parish","UOCUSA","Portland","OR",45.4654782,-122.6488035,219.5],
+[24,"St. Anne Church","OCA","Corvallis","OR",44.6316108,-123.2404799,219.9],
+[25,"St. Martin the Merciful Church","ROCOR","Corvallis","OR",44.6046088,-123.2582424,220.1],
+[26,"Holy Trinity Cathedral","GOA","Portland","OR",45.52685,-122.632357,221.4],
+[27,"St. Nicholas Church","OCA","Portland","OR",45.4610765,-122.7005229,221.4],
+[28,"Church of St. Innocent of Irkutsk","ROCOR","Rogue River","OR",42.429259,-123.161554,222.4],
+[29,"Holy Apostles Church","OCA","Vancouver","WA",45.6498112,-122.6771137,228.2],
+[30,"St. John the Baptist Greek Orthodox Church","GOA","Beaverton","OR",45.513724,-122.825814,228.5],
+[31,"St. Matthew the Evangelist Mission","OCA","Vancouver","WA",45.6998301,-122.7076449,231.4],
+[32,"St. Katherine Mission Station","Antiochian","Pullman","WA",46.7318,-117.1812,235.7],
+[33,"St. Ignatius Church","Antiochian","Twin Falls","ID",42.56316,-114.4932,240.8],
+[34,"Prophet Elijah Mission","Antiochian","Ellensburg","WA",46.99122,-120.5573,246.3],
+[35,"St. Paisios of Mt. Athos Mission","Antiochian","Moses Lake","WA",47.16826,-119.27,247.7],
+[36,"St. Patrick Mission","OCA","Newport","OR",44.6451317,-124.0486497,258.3],
+[37,"St Andrew Fool-for-christ Serbian Orthodox Parish","Serbian","Redding","CA",40.5852561,-122.3916599,268.8],
+[38,"St. George Church","GOA","Redding","CA",40.5829,-122.3866,268.8],
+[39,"Three Holy Hierarchs Mission","Antiochian","Wenatchee","WA",47.45256,-120.3459,274.3],
+[40,"Holy Royal Martyrs of Russia Orthodox Church","ROCOR","Sparks","NV",39.5434619,-119.7523154,281.7],
+[41,"St John the Baptist Serbian Orthodox Church","Serbian","Reno","NV",39.4990126,-119.7986818,285.0],
+[42,"St. Anthony Church","GOA","Reno","NV",39.480392,-119.808821,286.4],
+[43,"Holy Trinity Church","GOA","Spokane","WA",47.673313,-117.417597,293.2],
+[44,"Christ the Savior Church","Antiochian","Spokane Valley","WA",47.64287,-117.2382,293.7],
+[45,"St. Brendan the Navigator Mission","OCA","Astoria","OR",46.1806636,-123.8518773,295.4],
+[46,"St. Nicholas Church","Antiochian","Spokane","WA",47.7041,-117.3901,295.6],
+[47,"Holy Trinity / Holy Resurrection Church","OCA","Tacoma","WA",47.1776733,-122.3927738,296.3],
+[48,"SS. Cyril and Methodius Mission","OCA","Chico","CA",39.7697794,-121.8431964,300.4],
+[49,"St. Nicholas Church","GOA","Tacoma","WA",47.247705,-122.445842,301.7],
+[50,"St Sava Serbian Orthodox Church","Serbian","Issaquah","WA",47.4685852,-122.0223299,304.2],
+[51,"St. John the Baptist Church","Antiochian","Post Falls","ID",47.72587,-116.8847,304.6],
+[52,"St. Luke Church","OCA","Chattaroy","WA",47.8594428,-117.2940393,307.2],
+[53,"St. Andrew","ROCOR","Carson City","NV",39.1714007,-119.7673835,307.3],
+[54,"All-Merciful Saviour Monastery","ROCOR","Vashon Island","WA",47.3646564,-122.4617547,308.8],
+[55,"Holy Trinity Mission","UOCUSA","Seattle","WA",47.618147,-122.2860373,319.3],
+[56,"Holy Nativity of the Theotokos Mission","Antiochian","Seattle","WA",47.61697,-122.3152,319.9],
+[57,"St. Nicholas Cathedral","ROCOR","Seattle","WA",47.6169719,-122.315184,319.9],
+[58,"Assumption Church","GOA","Seattle","WA",47.617794,-122.315168,320.0],
+[59,"St. Spiridon Cathedral","OCA","Seattle","WA",47.6221108,-122.3301299,320.6],
+[60,"St. Demetrios Church","GOA","Seattle","WA",47.638448,-122.307677,321.0],
+[61,"St. Katherine Church","OCA","Kirkland","WA",47.7279727,-122.1635101,323.1],
+[62,"Holy Protection of the Theotokos Orthodox Church","Serbian","Seattle","WA",47.6761745,-122.3217619,323.6],
+[63,"Saints Joachim and Anna Romanian Orthodox Church","Romanian","Seattle","WA",47.657905,-122.4004265,324.4],
+[64,"St. Innocent Church","OCA","Eureka","CA",40.7980928,-124.1647549,324.8],
+[65,"Holy Apostles Greek Orthodox Church","GOA","Shoreline","WA",47.769932,-122.340693,329.7],
+[66,"St. Paul Church","Antiochian","Brier","WA",47.80453,-122.2744,330.2],
+[67,"Three Hierarchs Church","OCA","Bellevue","WA",47.7937084,-122.3197842,330.6],
+[68,"St. Innocent Orthodox Church","ROCOR","Bremerton","WA",47.6462594,-122.6957038,331.1],
+[69,"St. Thomas Church","Antiochian","Snohomish","WA",47.92831,-122.1009,334.0],
+[70,"Annunciation Church","GOA","Missoula","MT",46.863753,-114.000879,334.2],
+[71,"St. Silouan Mission","OCA","Marysville","CA",39.1397126,-121.5988194,334.3],
+[72,"Assumption Church","GOA","Pocatello","ID",42.869789,-112.446999,336.2],
+[73,"St. Elizabeth the New Martyr Church","OCA","Poulsbo","WA",47.8037371,-122.6522031,339.1],
+[74,"St. Elias Orthodox Mission","ROCOR","Diamond Springs","CA",38.693374,-120.812685,350.2],
+[75,"St. Andrew Church","Antiochian","Arlington","WA",48.20008,-122.1236,351.2],
+[76,"St. Anna Greek Orthodox Church","GOA","Roseville","CA",38.759717,-121.244172,352.4],
+[77,"St. Gabriel the Archangel","ROCOR","Stanwood","WA",48.2468671,-122.3223395,358.2],
+[78,"Holy Resurrection Romanian Orthodox Church","Romanian","Antelope","CA",38.7036816,-121.3899638,358.5],
+[79,"Holy Trinity Mission","UOCUSA","Sacramento","CA",38.6880523,-121.3481286,358.8],
+[80,"St. Olga Chapel (St. George Pathfinders Camp)","ROCOR","Laytonville","CA",39.6255684,-123.5778491,359.8],
+[81,"Assumption of the Blessed Virgin Mary Serbian Orthodox Church","Serbian","Fair Oaks","CA",38.6536148,-121.2795828,359.9],
+[82,"St. Herman of Alaska Church","OCA","Port Townsend","WA",48.1216357,-122.7927771,361.2],
+[83,"Holy Trinity Serbian Orthodox Church","Serbian","Butte","MT",45.9912258,-112.486381,362.2],
+[84,"SS. Michael and Gabriel Church","OCA","Sacramento","CA",38.6521116,-121.4295455,362.6],
+[85,"St. Stephen Orthodox Church","GOA","Rancho Cordova","CA",38.6081317,-121.2747538,362.8],
+[86,"St. Barbara Chapel","GOA","McGill","NV",39.403429,-114.7791,363.9],
+[87,"St. Alexios Chapel","GOA","Ely","NV",39.332636,-114.824507,366.4],
+[88,"Annunciation Church","GOA","Sacramento","CA",38.577004,-121.463513,368.1],
+[89,"Holy Ascension Church","ROCOR","Sacramento","CA",38.5823308,-121.4880832,368.2],
+[90,"Holy Myrrhbearing Women Church","OCA","West Sacramento","CA",38.5919104,-121.5411929,368.5],
+[91,"St. Sophrony of Essex Mission","OCA","Sequim","WA",48.0911793,-123.1737834,368.9],
+[92,"Elevation of the Holy Cross Church","OCA","Sacramento","CA",38.5365537,-121.367207,369.1],
+[93,"Holy Virgin Mary Church","Antiochian","West Sacramento","CA",38.54216,-121.5481,371.9],
+[94,"St Sava Serbian Orthodox Church","Serbian","Jackson","CA",38.3561074,-120.7763236,372.3],
+[95,"St. Athanasius Church","Antiochian","Sacramento","CA",38.47033,-121.3899,373.8],
+[96,"Life Giving Spring Orthodox Mission","GOA","Ukiah","CA",39.14713,-123.1993033,374.4],
+[97,"St. Katherine Greek Orthodox Church","GOA","Elk Grove","CA",38.424366,-121.468296,378.2],
+[98,"St Basil of Ostrog Serbian Orthodox Mission","Serbian","Altaville","CA",38.0803249,-120.5591368,388.5],
+[99,"St. Gabriel Mission","Antiochian","Angels Camp","CA",38.07062,-120.541,388.9],
+[100,"Saint Silouan Monastery","ROCOR","Sonora","CA",38.011156,-120.387769,391.5],
+[101,"St. Susanna Mission","OCA","Sonora","CA",37.994625,-120.4096375,392.8],
+[102,"Saint Sophia Church","GOA","Bellingham","WA",48.769288,-122.469284,393.5],
+[103,"All Saints Orthodox Church","ROCOR","Lodi","CA",38.1385968,-121.2894628,394.1],
+[104,"Transfiguration Church","GOA","Ogden","UT",41.186064,-111.96338,397.9],
+[105,"Holy Myrrhbearing Women Mission","Antiochian","Bonners Ferry","ID",48.99651,-116.1839,398.1],
+[106,"St. Innocent Church","Antiochian","Everson","WA",48.91215,-122.2899,399.0],
+[107,"St. Timothy Church","Antiochian","Fairfield","CA",38.21978,-122.1305,404.0],
+[108,"St. Basil Church","GOA","Stockton","CA",37.988952,-121.316657,404.4],
+[109,"Holy Dormition Orthodox Church","Bulgarian","Santa Rosa","CA",38.4262511,-122.7361534,404.8],
+[110,"St. Moses the Strong Mission","OCA","Helena","MT",46.7304449,-112.0259616,405.3],
+[111,"St. Seraphim of Sarov Cathedral / Holy Protection","OCA","Santa Rosa","CA",38.3784551,-122.7109727,407.1],
+[112,"Sts. Peter and Paul Russian Orthodox Church","ROCOR","Santa Rosa","CA",38.390812,-122.743313,407.2],
+[113,"Holy Virgin of Kazan Church","ROCOR","Guerneville","CA",38.4914021,-123.0126545,407.9],
+[114,"St. George Orthodox Church","GOA","Rohnert Park","CA",38.3352904,-122.7081124,409.7],
+[115,"Holy Trinity Chapel","ROCOR","Jenner","CA",38.5183012,-123.2384425,412.4],
+[116,"Sts. Constantine & Helen Church","GOA","Vallejo","CA",38.109126,-122.243937,413.4],
+[117,"Holy Trinity Cathedral","GOA","Salt Lake City","UT",40.763126,-111.899264,414.8],
+[118,"St Archangel Michael Serbian Orthodox Parish","Serbian","Salt Lake City","UT",40.7346805,-111.9192234,414.9],
+[119,"St. Anthony the Great Church","OCA","Bozeman","MT",45.724423,-111.1461862,415.6],
+[120,"Holy Cross Orthodox Mission","GOA","Manteca","CA",37.7974273,-121.2160526,415.7],
+[121,"Ss. Peter and Paul Church","Antiochian","Salt Lake City","UT",40.76138,-111.8821,415.7],
+[122,"St. Michael the Archangel Church","OCA","Concord","CA",37.9955898,-122.033331,416.5],
+[123,"SS. Kyrill and Metodi Mission","OCA","Martinez","CA",38.0142968,-122.11811,416.9],
+[124,"St. Demetrios Greek Orthodox Church","GOA","Concord","CA",37.962321,-121.944586,416.9],
+[125,"St. George Russian Orthodox Church","ROCOR","Murray","UT",40.627879,-111.929927,418.3],
+[126,"Annunciation Church","GOA","Modesto","CA",37.672833,-120.988956,421.0],
+[127,"St. Thomas the Apostle Mission","OCA","Pleasant Hill","CA",37.931045,-122.0738951,421.4],
+[128,"Prophet Elias Church","GOA","Holladay","UT",40.653111,-111.834765,421.6],
+[129,"St. Anna Church","GOA","Sandy","UT",40.655097,-111.833966,421.6],
+[130,"Nativity of Christ Church","GOA","Novato","CA",38.071143,-122.552769,422.6],
+[131,"Sts. Peter & Paul Orthodox Church","GOA","Walnut Creek","CA",37.901896,-122.0682507,423.2],
+[132,"St. James Church","Antiochian","Modesto","CA",37.63902,-121.0178,423.6],
+[133,"St. John the Evangelist Church","Antiochian","Orinda","CA",37.85643,-122.1542,427.8],
+[134,"Holy Trinity Serbian Orthodox Church","Serbian","Moraga","CA",37.8327034,-122.133396,428.9],
+[135,"St. Nicholas Church","OCA","San Anselmo","CA",37.9715647,-122.5656426,429.1],
+[136,"St. John the Baptist Church","OCA","Berkeley","CA",37.8532881,-122.2692001,430.3],
+[137,"Ascension of the Lord Romanian Orthodox Mission","Romanian","Piedmont","CA",37.8185616,-122.210934,431.4],
+[138,"Ascension Cathedral","GOA","Oakland","CA",37.80952,-122.201574,431.8],
+[139,"St George Serbian Orthodox Church","Serbian","Oakland","CA",37.7976292,-122.264604,433.8],
+[140,"St. Innocent Church","OCA","Pleasanton","CA",37.6717398,-121.8679684,434.4],
+[141,"St. John of Kronstadt House Church","ROCOR","Castro Valley","CA",37.7070486,-122.0699845,435.8],
+[142,"Church of the Resurrection","GOA","Castro Valley","CA",37.697122,-122.061471,436.3],
+[143,"Holy Trinity Cathedral","OCA","San Francisco","CA",37.7977399,-122.4243436,437.1],
+[144,"St. Michael Parish","UOCUSA","San Francisco","CA",37.7763453,-122.4068843,438.1],
+[145,"St John the Baptist Serbian Orthodox Cathedral","Serbian","San Francisco","CA",37.7796816,-122.4415239,438.6],
+[146,"St. Mary Magdalene Mission","OCA","Atwater","CA",37.3476706,-120.5963751,438.6],
+[147,"Holy Resurrection Orthodox Church","ROCOR","San Francisco","CA",37.786448,-122.46497,438.7],
+[148,"Annunciation Cathedral","GOA","San Francisco","CA",37.768777,-122.421806,438.9],
+[149,"Church of the Mother of God of Kazan","ROCOR","San Francisco","CA",37.7839524,-122.4791085,439.1],
+[150,"St. Nicholas Cathedral","Moscow Patriarchate","San Francisco","CA",37.7661305,-122.4289047,439.2],
+[151,"St. Simeon Verkhotursky Russian Orthodox Church","ROCOR","San Francisco","CA",37.7816,-122.4736,439.2],
+[152,"Christ the Saviour Church","OCA","San Francisco","CA",37.7789808,-122.4703134,439.3],
+[153,"Holy Virgin Joy of All Who Sorrow Cathedral","ROCOR","San Francisco","CA",37.7803481,-122.486305,439.5],
+[154,"St. Tikhon of Zadonsk Orthodox Church","ROCOR","San Francisco","CA",37.7770026,-122.4735775,439.5],
+[155,"St. Sergius of Radonezh Church","ROCOR","San Francisco","CA",37.7630157,-122.469225,440.2],
+[156,"Holy Resurrection Church","OCA","Hayward","CA",37.6393215,-122.0979725,440.7],
+[157,"St. Nicholas Church","Antiochian","San Francisco","CA",37.74492,-122.4404,440.8],
+[158,"St. Xenia of St. Petersburg Mission","ROCOR","San Francisco","CA",37.7577,-122.4855,440.9],
+[159,"Holy Trinity Church","GOA","San Francisco","CA",37.713737,-122.481773,443.7],
+[160,"St. Christina of Tyre Church","OCA","Fremont","CA",37.5594134,-122.0032202,444.2],
+[161,"Iviron Icon of the Mother of God Georgian Orthodox Church","Georgian","Colma","CA",37.679978,-122.450651,445.2],
+[162,"St. George Orthodox Cathedral","GOA","Daly City","CA",37.6757751,-122.4710884,445.8],
+[163,"St. Xenia Mission","Antiochian","Payson","UT",40.0255,-111.7679,448.5],
+[164,"Church of All Russian Saints","ROCOR","Burlingame","CA",37.579794,-122.3578218,449.7],
+[165,"St. James Orthodox Church","GOA","Milpitas","CA",37.4330957,-121.9086133,450.7],
+[166,"Holy Cross Church","GOA","Belmont","CA",37.513111,-122.295665,452.7],
+[167,"Holy Cross Church","OCA","San Jose","CA",37.3507521,-121.814657,454.5],
+[168,"Nativity of the Holy Virgin Church","OCA","Menlo Park","CA",37.4524958,-122.186578,454.5],
+[169,"Protection of the Holy Virgin Church","ROCOR","Palo Alto","CA",37.42863,-122.1151417,454.7],
+[170,"St. Herman of Alaska Church","ROCOR","Sunnyvale","CA",37.3800914,-122.0294657,456.3],
+[171,"St. Nicholas Church","GOA","San Jose","CA",37.340551,-121.927636,457.1],
+[172,"Orthodox Church of the Redeemer","Antiochian","Los Altos Hills","CA",37.35327,-122.1056,459.5],
+[173,"St. Mark the Evangelist Mission","OCA","Great Falls","MT",47.4946096,-111.3262706,460.9],
+[174,"St. Stephen Church","Antiochian","Campbell","CA",37.28514,-121.9488,461.1],
+[175,"Sts. Constantine & Helen Church","GOA","Great Falls","MT",47.5065794,-111.2883505,462.9],
+[176,"St Archangel Michael Serbian Orthodox Church","Serbian","Saratoga","CA",37.2666403,-122.0018633,463.3],
+[177,"St. Basil Church","GOA","San Jose","CA",37.223249,-121.866811,463.8],
+[178,"St. Nicholas Church","OCA","Saratoga","CA",37.261431,-122.0375401,464.2],
+[179,"St Peter the Apostle Serbian Orthodox Church","Serbian","Fresno","CA",36.7825429,-119.771351,471.6],
+[180,"St. George Church","GOA","Fresno","CA",36.771094,-119.775398,472.4],
+[181,"SS. Peter and Paul Church","Antiochian","Ben Lomond","CA",37.09301,-122.0957,476.3],
+[182,"St. Lawrence Orthodox Church","GOA","Felton","CA",37.0509917,-122.0730344,478.6],
+[183,"St. John the Baptist Church","GOA","Carmel-by-the-Sea","CA",36.916803,-121.763338,482.4],
+[184,"Prophet Elias Church","GOA","Santa Cruz","CA",36.973855,-122.02844,482.9]
+];
+const JUR={
+  'GOA':{full:'Greek Orthodox Archdiocese of America',color:'#4dabf7'},
+  'OCA':{full:'Orthodox Church in America',color:'#ffd43b'},
+  'ROCOR':{full:'Russian Orthodox Church Outside Russia',color:'#b197fc'},
+  'Antiochian':{full:'Antiochian Orthodox Christian Archdiocese',color:'#ff8787'},
+  'Serbian':{full:'Serbian Orthodox Church',color:'#63e6be'},
+  'UOCUSA':{full:'Ukrainian Orthodox Church of the USA',color:'#ffa94d'},
+  'Romanian':{full:'Romanian Orthodox Metropolia',color:'#f783ac'},
+  'Bulgarian':{full:'Bulgarian Eastern Orthodox Diocese',color:'#a9e34b'},
+  'Moscow Patriarchate':{full:'Moscow Patriarchal Parishes',color:'#e599f7'},
+  'Georgian':{full:'Georgian Apostolic Orthodox Church in NA',color:'#adb5bd'}
+};
+function colorOf(j){ return (JUR[j]&&JUR[j].color)||'#94a3b8'; }
+function fullName(j){ return (JUR[j]&&JUR[j].full)||j; }
+
+/* ======================= ROAD NETWORK ======================= */
+/* Hand-built corridor graph: waypoints on the major highway network.
+   NOT OSM - swap for a real extract and the algorithm is unchanged. */
+const PLACES = {
+bellingham:[48.7491,-122.4781], mtvernon:[48.4212,-122.3340], everett:[47.9790,-122.2021],
+lynnwood:[47.8209,-122.3151], edmonds:[47.8110,-122.3770], mukilteo:[47.9490,-122.3040],
+seattle:[47.6062,-122.3321], seatf:[47.6025,-122.3405], fauntleroy:[47.5230,-122.3940],
+tacoma:[47.2529,-122.4443], gigharbor:[47.3293,-122.5801], bremerton:[47.5673,-122.6326],
+poulsbo:[47.7359,-122.6468], kingston:[47.7987,-122.4987], clinton:[47.9754,-122.3835],
+coupeville:[48.2190,-122.6870], porttownsend:[48.1170,-122.7604], portangeles:[48.1181,-123.4307],
+sequim:[48.0795,-123.1018], forks:[47.9504,-124.3855], aberdeen:[46.9754,-123.8157],
+hoquiam:[46.9809,-123.8893], olympia:[47.0379,-122.9007], shelton:[47.2151,-123.1008],
+centralia:[46.7162,-122.9543], chehalis:[46.6620,-122.9640], longview:[46.1468,-122.9084],
+vancouver:[45.6387,-122.6615], yakima:[46.6021,-120.5059], toppenish:[46.3774,-120.3087],
+kennewick:[46.2112,-119.1372], ellensburg:[46.9965,-120.5478], cleelum:[47.1954,-120.9392],
+snoqualmie:[47.4243,-121.4131], northbend:[47.4957,-121.7868], monroe:[47.8554,-121.9709],
+skykomish:[47.7093,-121.3562], leavenworth:[47.5962,-120.6615], wenatchee:[47.4235,-120.3103],
+ephrata:[47.3176,-119.5532], moseslake:[47.1301,-119.2781], ritzville:[47.0893,-118.3797],
+spokane:[47.6588,-117.4260], colville:[48.5466,-117.9055], newportwa:[48.1799,-117.0435],
+republic:[48.6482,-118.7342], tonasket:[48.7052,-119.4392], okanogan:[48.3610,-119.5839],
+twisp:[48.3635,-120.1203], winthrop:[48.4782,-120.1862], marblemount:[48.5290,-121.4370],
+naches:[46.7290,-120.6990], morton:[46.5582,-122.2768], whitepass:[46.6387,-121.3906],
+astoria:[46.1879,-123.8313], megler:[46.2530,-123.8800], vashon:[47.3987,-122.4660],
+tahlequah:[47.3360,-122.4970], pointdefiance:[47.3060,-122.5290], bainbridge:[47.6223,-122.5210],
+goldendale:[45.8225,-120.8255],
+portland:[45.5152,-122.6784], hoodriver:[45.7054,-121.5215], thedalles:[45.5946,-121.1787],
+pendleton:[45.6721,-118.7886], lagrande:[45.3246,-118.0877], bakercity:[44.7749,-117.8344],
+ontario:[44.0266,-116.9629], vale:[43.9821,-117.2385], burns:[43.5863,-119.0541],
+hines:[43.5646,-119.0810], crane:[43.4154,-118.5783], princeton:[43.2465,-118.4852],
+burnsjunction:[42.7737,-117.8452], johnday:[44.4157,-118.9530], mitchell:[44.5671,-120.1533],
+prineville:[44.3001,-120.8345], madras:[44.6335,-121.1295], bend:[44.0582,-121.3153],
+redmond:[44.2726,-121.1739], sisters:[44.2909,-121.5492], santiampass:[44.4168,-121.8558],
+sweethome:[44.3976,-122.7362], albany:[44.6365,-123.1059], corvallis:[44.5646,-123.2620],
+salem:[44.9429,-123.0351], eugene:[44.0521,-123.0868], oakridge:[43.7468,-122.4612],
+crescentlake:[43.5096,-121.9700], chemult:[43.2226,-121.7847], lapine:[43.6701,-121.5039],
+klamathfalls:[42.2249,-121.7817], bly:[42.3957,-120.9960], lakeview:[42.1888,-120.3458],
+paisley:[42.6935,-120.5464], roseburg:[43.2165,-123.3417], grantspass:[42.4390,-123.3284],
+medford:[42.3265,-122.8756], newportor:[44.6368,-124.0534], toledo:[44.6215,-123.9387],
+seaside:[45.9934,-123.9226], tillamook:[45.4562,-123.8440], lincolncity:[44.9582,-124.0173],
+florence:[43.9826,-124.0998], reedsport:[43.7023,-124.0962], coosbay:[43.3665,-124.2179],
+bandon:[43.1190,-124.4084], portorford:[42.7457,-124.4973], goldbeach:[42.4073,-124.4218],
+brookings:[42.0526,-124.2839], sandy:[45.3973,-122.2612], govtcamp:[45.3040,-121.7565],
+brothers:[43.8137,-120.5947],
+boise:[43.6150,-116.2023], nampa:[43.5407,-116.5635], marsing:[43.5463,-116.8135],
+payette:[44.0782,-116.9338], weiser:[44.2510,-116.9696], council:[44.7296,-116.4379],
+newmeadows:[44.9724,-116.2849], grangeville:[45.9260,-116.1224], lewiston:[46.4165,-117.0177],
+moscow:[46.7324,-117.0002], coeurdalene:[47.6777,-116.7805], sandpoint:[48.2766,-116.5535],
+bonnersferry:[48.6913,-116.3163], kellogg:[47.5383,-116.1193], stregis:[47.2983,-115.1013],
+mountainhome:[43.1329,-115.6912], twinfalls:[42.5630,-114.4609], burley:[42.5357,-113.7928],
+pocatello:[42.8713,-112.4455], idahofalls:[43.4917,-112.0339], arco:[43.6366,-113.3003],
+carey:[43.2666,-113.9459], shoshone:[42.9360,-114.4059], challis:[44.5046,-114.2317],
+salmon:[45.1757,-113.8950], snowville:[41.9655,-112.7094], jordanvalley:[42.9768,-117.0535],
+missoula:[46.8721,-113.9940], deerlodge:[46.3958,-112.7298], butte:[46.0038,-112.5348],
+bozeman:[45.6770,-111.0429], helena:[46.5884,-112.0245], greatfalls:[47.5002,-111.3008],
+dillon:[45.2163,-112.6375], kalispell:[48.1958,-114.3124], libby:[48.3883,-115.5560],
+hamilton:[46.2469,-114.1595], threeforks:[45.8924,-111.5522],
+reno:[39.5296,-119.8138], carsoncity:[39.1638,-119.7674], fernley:[39.6080,-119.2507],
+fallon:[39.4749,-118.7774], lovelock:[40.1794,-118.4735], winnemucca:[40.9729,-117.7357],
+battlemountain:[40.6421,-116.9340], elko:[40.8324,-115.7631], wells:[41.1116,-114.9645],
+ely:[39.2474,-114.8886], eurekanv:[39.5121,-115.9605], austin:[39.4930,-117.0694],
+hawthorne:[38.5246,-118.6240], tonopah:[38.0672,-117.2300], beatty:[36.9084,-116.7597],
+mcdermitt:[41.9988,-117.7180], jackpot:[41.9832,-114.6703], wendover:[40.7372,-114.0308],
+pioche:[37.9277,-114.4517],
+ogden:[41.2230,-111.9738], slc:[40.7608,-111.8910], tremonton:[41.7119,-112.1655],
+brigham:[41.5102,-112.0155],
+yreka:[41.7354,-122.6345], weed:[41.4226,-122.3861], redding:[40.5865,-122.3917],
+redbluff:[40.1785,-122.2358], chico:[39.7285,-121.8375], yubacity:[39.1404,-121.6169],
+sacramento:[38.5816,-121.4944], stockton:[37.9577,-121.2908], modesto:[37.6391,-120.9969],
+merced:[37.3022,-120.4830], fresno:[36.7378,-119.7871], williams:[39.1546,-122.1494],
+susanville:[40.4163,-120.6530], alturas:[41.4874,-120.5425], burney:[40.8827,-121.6606],
+doyle:[40.0277,-120.1041], truckee:[39.3280,-120.1833], auburn:[38.8966,-121.0769],
+southlaketahoe:[38.9399,-119.9774], jacksonca:[38.3488,-120.7741], oroville:[39.5138,-121.5564],
+quincy:[39.9368,-120.9472], portola:[39.8105,-120.4691], marysville:[39.1457,-121.5913],
+crescentcity:[41.7558,-124.2026], eurekaca:[40.8021,-124.1637], fortuna:[40.5982,-124.1573],
+willits:[39.4096,-123.3550], ukiah:[39.1502,-123.2078], cloverdale:[38.8055,-123.0172],
+santarosa:[38.4404,-122.7141], novato:[38.1074,-122.5697], sanrafael:[37.9735,-122.5311],
+sf:[37.7749,-122.4194], oakland:[37.8044,-122.2712], sanjose:[37.3382,-121.8863],
+santacruz:[36.9741,-122.0308], gilroy:[37.0058,-121.5683], halfmoonbay:[37.4636,-122.4286],
+dorris:[41.9668,-121.9186]
+};
+const SPEED={i:65,u:55,s:45,f:11};   /* f = ferry, effective incl. queueing */
+const ROADS=[
+['i',['bellingham','mtvernon','everett','lynnwood','seattle','tacoma','olympia','centralia','longview','vancouver','portland','salem','albany','eugene','roseburg','grantspass','medford','yreka','weed','redding','redbluff','williams','sacramento','stockton','modesto','merced','fresno']],
+['i',['portland','hoodriver','thedalles','pendleton','lagrande','bakercity','ontario','boise','mountainhome','twinfalls','burley','snowville','tremonton','brigham','ogden','slc']],
+['i',['ellensburg','yakima','toppenish','kennewick']],
+['i',['seattle','northbend','snoqualmie','cleelum','ellensburg','moseslake','ritzville','spokane','coeurdalene','kellogg','stregis','missoula','deerlodge','butte','bozeman']],
+['i',['sacramento','auburn','truckee','reno','fernley','lovelock','winnemucca','battlemountain','elko','wells','wendover','slc']],
+['i',['slc','ogden','brigham','tremonton','pocatello','idahofalls','dillon','butte','helena','greatfalls']],
+['i',['twinfalls','pocatello']],
+['u',['weed','dorris','klamathfalls','chemult','lapine','bend','redmond','madras','thedalles','goldendale','yakima','ellensburg','wenatchee','okanogan']],
+['u',['newportor','toledo','corvallis','albany','sweethome','santiampass','sisters','bend','brothers','burns','vale','ontario']],
+['u',['reno','susanville','alturas','lakeview','burns','johnday','pendleton','kennewick','ritzville','spokane']],
+['u',['winnemucca','mcdermitt','jordanvalley','marsing','nampa','payette','weiser','council','newmeadows','grangeville','lewiston','moscow','coeurdalene','sandpoint','bonnersferry']],
+['u',['winnemucca','lovelock','fallon','hawthorne','tonopah','beatty']],
+['u',['wells','jackpot','twinfalls']],
+['u',['wells','ely','pioche']],
+['u',['sacramento','southlaketahoe','carsoncity','fallon','austin','eurekanv','ely']],
+['u',['ely','tonopah']],
+['u',['olympia','shelton','aberdeen','hoquiam','forks','portangeles','sequim','porttownsend']],
+['u',['astoria','seaside','tillamook','lincolncity','newportor','florence','reedsport','coosbay','bandon','portorford','goldbeach','brookings','crescentcity','eurekaca','fortuna','willits','ukiah','cloverdale','santarosa','novato','sanrafael','sf']],
+['u',['grantspass','crescentcity']],
+['u',['everett','monroe','skykomish','leavenworth','wenatchee','ephrata','ritzville','spokane','newportwa','sandpoint','bonnersferry','libby','kalispell']],
+['u',['aberdeen','olympia','chehalis','morton','whitepass','naches','yakima']],
+['u',['portland','sandy','govtcamp','madras','prineville','mitchell','johnday','vale']],
+['u',['boise','mountainhome','carey','arco','idahofalls']],
+['u',['twinfalls','shoshone','challis','salmon','missoula']],
+['u',['spokane','hamilton']],
+['s',['eugene','oakridge','crescentlake','chemult']],
+['s',['klamathfalls','bly','lakeview']],
+['s',['lapine','paisley','lakeview']],
+['s',['burns','crane','princeton','burnsjunction']],
+['s',['redding','burney','alturas']],
+['s',['oroville','quincy','portola','reno']],
+['s',['auburn','jacksonca']],
+['s',['mtvernon','marblemount','winthrop','twisp','okanogan','tonasket','republic','colville','newportwa']],
+['s',['tacoma','gigharbor','bremerton','poulsbo','kingston']],
+['s',['clinton','coupeville']],
+['s',['bainbridge','poulsbo']],
+['s',['lynnwood','edmonds']],
+['s',['everett','mukilteo']],
+['s',['seattle','seatf']],
+['s',['seattle','fauntleroy']],
+['s',['tacoma','pointdefiance']],
+['s',['vashon','tahlequah']],
+['s',['sf','halfmoonbay','santacruz']],
+['s',['santacruz','gilroy','sanjose']],
+['s',['sanjose','oakland','sf']],
+['s',['hines','burns']],
+['s',['marysville','oroville']],
+['s',['dillon','hamilton']],
+['s',['threeforks','bozeman']],
+['u',['redbluff','chico','yubacity','sacramento']],
+['u',['susanville','doyle','reno']],
+['f',['edmonds','kingston']],
+['f',['mukilteo','clinton']],
+['f',['seatf','bainbridge']],
+['f',['seatf','bremerton']],
+['f',['fauntleroy','vashon']],
+['f',['tahlequah','pointdefiance']],
+['f',['porttownsend','coupeville']],
+['f',['astoria','megler']]
+];
+
+/* ======================= GEOMETRY ======================= */
+const D2R=Math.PI/180, R2D=180/Math.PI, EARTH_MI=3958.7613;
+function proj(lat,lng){ return {x:lng, y:-Math.log(Math.tan(Math.PI/4+(lat*D2R)/2))*R2D}; }
+function unproj(x,y){ return {lat:(2*Math.atan(Math.exp(-y*D2R))-Math.PI/2)*R2D, lng:x}; }
+function haversine(a,b){
+  const dLat=(b.lat-a.lat)*D2R, dLng=(b.lng-a.lng)*D2R;
+  const s=Math.sin(dLat/2)**2+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.sin(dLng/2)**2;
+  return 2*EARTH_MI*Math.asin(Math.min(1,Math.sqrt(s)));
+}
+function destination(from,angDist,bearing){
+  const p1=from.lat*D2R, l1=from.lng*D2R;
+  const p2=Math.asin(Math.sin(p1)*Math.cos(angDist)+Math.cos(p1)*Math.sin(angDist)*Math.cos(bearing));
+  const l2=l1+Math.atan2(Math.sin(bearing)*Math.sin(angDist)*Math.cos(p1), Math.cos(angDist)-Math.sin(p1)*Math.sin(p2));
+  return {lat:p2*R2D, lng:l2*R2D};
+}
+
+function gridFor(bounds,targetW){
+  const xspan=bounds.x1-bounds.x0, yspan=bounds.y1-bounds.y0;
+  const gw=targetW, gh=Math.max(8,Math.round(targetW*yspan/xspan));
+  const cw=xspan/gw, ch=yspan/gh;
+  const mpcRow=new Float32Array(gh);
+  for(let j=0;j<gh;j++){
+    const y=bounds.y0+(j+0.5)*ch;
+    const lat=unproj(0,y).lat;
+    mpcRow[j]=cw*69.17*Math.cos(lat*D2R);
+  }
+  return {gw,gh,cw,ch,mpcRow};
+}
+
+function buildSpeedField(bounds,G,offroadMph){
+  const {gw,gh,cw,ch}=G;
+  const speed=new Float32Array(gw*gh).fill(offroadMph);
+  for(const [cls,keys] of ROADS){
+    const mph=SPEED[cls];
+    for(let i=0;i<keys.length-1;i++){
+      const A=PLACES[keys[i]], B=PLACES[keys[i+1]];
+      if(!A||!B) continue;
+      const pa=proj(A[0],A[1]), pb=proj(B[0],B[1]);
+      const x0=(pa.x-bounds.x0)/cw, y0=(pa.y-bounds.y0)/ch;
+      const x1=(pb.x-bounds.x0)/cw, y1=(pb.y-bounds.y0)/ch;
+      const steps=Math.max(1,Math.ceil(Math.max(Math.abs(x1-x0),Math.abs(y1-y0))*2));
+      for(let s=0;s<=steps;s++){
+        const t=s/steps;
+        const cx=Math.round(x0+(x1-x0)*t), cy=Math.round(y0+(y1-y0)*t);
+        if(cx<0||cy<0||cx>=gw||cy>=gh) continue;
+        const k=cy*gw+cx;
+        if(mph>speed[k]) speed[k]=mph;
+      }
+    }
+  }
+  const out=new Float32Array(speed);
+  for(let j=0;j<gh;j++) for(let i=0;i<gw;i++){
+    const k=j*gw+i; let m=speed[k];
+    if(i>0&&speed[k-1]>m)m=speed[k-1];
+    if(i<gw-1&&speed[k+1]>m)m=speed[k+1];
+    if(j>0&&speed[k-gw]>m)m=speed[k-gw];
+    if(j<gh-1&&speed[k+gw]>m)m=speed[k+gw];
+    out[k]=m;
+  }
+  return out;
+}
+
+function seedCells(list,bounds,G){
+  const {gw,gh,cw,ch}=G;
+  const taken=new Set(), seeds=[];
+  for(const p of list){
+    const q=proj(p.lat,p.lng);
+    let cx=Math.round((q.x-bounds.x0)/cw), cy=Math.round((q.y-bounds.y0)/ch);
+    cx=Math.max(0,Math.min(gw-1,cx)); cy=Math.max(0,Math.min(gh-1,cy));
+    if(taken.has(cy*gw+cx)){
+      let done=false;
+      for(let r=1;r<=5&&!done;r++)
+        for(let dy=-r;dy<=r&&!done;dy++)
+          for(let dx=-r;dx<=r&&!done;dx++){
+            if(Math.abs(dx)!==r&&Math.abs(dy)!==r) continue;
+            const nx=cx+dx, ny=cy+dy;
+            if(nx<0||ny<0||nx>=gw||ny>=gh) continue;
+            const k=ny*gw+nx;
+            if(!taken.has(k)){ cx=nx; cy=ny; done=true; }
+          }
+    }
+    taken.add(cy*gw+cx);
+    seeds.push({cx,cy,id:p.id});
+  }
+  return seeds;
+}
+
+/* Chamfer sweep: no heap, converges in a handful of passes. */
+let _sweepN=0, _sweepDist=null, _sweepLab=null;
+function propagateSweepFast(speed,G,seeds,passes){
+  const {gw,gh,mpcRow}=G, N=gw*gh, SQ2=Math.SQRT2;
+  if(N!==_sweepN){ _sweepN=N; _sweepDist=new Float64Array(N); _sweepLab=new Int32Array(N); }
+  const dist=_sweepDist, lab=_sweepLab;
+  dist.fill(Infinity); lab.fill(-1);
+  for(const s of seeds){ const k=s.cy*gw+s.cx; if(k>=0&&k<N){ dist[k]=0; lab[k]=s.id; } }
+  for(let pass=0; pass<passes; pass++){
+    for(let j=0;j<gh;j++){
+      const mpc=mpcRow[j];
+      for(let i=0;i<gw;i++){
+        const k=j*gw+i;
+        const sp=speed[k]>3?speed[k]:3;
+        const base=mpc/sp*60, diag=SQ2*base;
+        let nd;
+        if(i>0 && (nd=dist[k-1]+base)<dist[k]){ dist[k]=nd; lab[k]=lab[k-1]; }
+        if(j>0){
+          if(i>0 && (nd=dist[k-gw-1]+diag)<dist[k]){ dist[k]=nd; lab[k]=lab[k-gw-1]; }
+          if((nd=dist[k-gw]+base)<dist[k]){ dist[k]=nd; lab[k]=lab[k-gw]; }
+          if(i<gw-1 && (nd=dist[k-gw+1]+diag)<dist[k]){ dist[k]=nd; lab[k]=lab[k-gw+1]; }
+        }
+      }
+    }
+    for(let j=gh-1;j>=0;j--){
+      const mpc=mpcRow[j];
+      for(let i=gw-1;i>=0;i--){
+        const k=j*gw+i;
+        const sp=speed[k]>3?speed[k]:3;
+        const base=mpc/sp*60, diag=SQ2*base;
+        let nd;
+        if(i<gw-1 && (nd=dist[k+1]+base)<dist[k]){ dist[k]=nd; lab[k]=lab[k+1]; }
+        if(j<gh-1){
+          if(i<gw-1 && (nd=dist[k+gw+1]+diag)<dist[k]){ dist[k]=nd; lab[k]=lab[k+gw+1]; }
+          if((nd=dist[k+gw]+base)<dist[k]){ dist[k]=nd; lab[k]=lab[k+gw]; }
+          if(i>0 && (nd=dist[k+gw-1]+diag)<dist[k]){ dist[k]=nd; lab[k]=lab[k+gw-1]; }
+        }
+      }
+    }
+  }
+  return {dist,lab};
+}
+
+function hexRgb(h){ const n=parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+function basinCanvas(lab,gw,gh,colorOf){
+  const cv=document.createElement('canvas');
+  cv.width=gw; cv.height=gh;
+  const ctx=cv.getContext('2d');
+  const img=ctx.createImageData(gw,gh), d=img.data;
+  const cache=new Map();
+  for(let i=0,j=0;i<gw*gh;i++,j+=4){
+    const l=lab[i];
+    if(l<0){ d[j+3]=0; continue; }
+    let c=cache.get(l);
+    if(!c){ c=hexRgb(colorOf(l)); cache.set(l,c); }
+    d[j]=c[0]; d[j+1]=c[1]; d[j+2]=c[2]; d[j+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  return cv;
+}
+
+/* crow-flies Voronoi, for the side-by-side comparison */
+function clipHalfPlane(poly,ax,ay,bx,by){
+  const nx=bx-ax, ny=by-ay, mx=(ax+bx)/2, my=(ay+by)/2;
+  const out=[], n=poly.length;
+  for(let i=0;i<n;i++){
+    const P=poly[i], Q=poly[(i+1)%n];
+    const sp=(P[0]-mx)*nx+(P[1]-my)*ny, sq=(Q[0]-mx)*nx+(Q[1]-my)*ny;
+    if(sp<=0) out.push(P);
+    if((sp<0&&sq>0)||(sp>0&&sq<0)){
+      const t=sp/(sp-sq);
+      out.push([P[0]+t*(Q[0]-P[0]), P[1]+t*(Q[1]-P[1])]);
+    }
+  }
+  return out;
+}
+function polyArea(poly){ let a=0,n=poly.length;
+  for(let i=0;i<n;i++){const p=poly[i],q=poly[(i+1)%n]; a+=p[0]*q[1]-q[0]*p[1];} return Math.abs(a)/2; }
+function polyCentroid(poly){
+  let a=0,cx=0,cy=0,n=poly.length;
+  for(let i=0;i<n;i++){const p=poly[i],q=poly[(i+1)%n]; const f=p[0]*q[1]-q[0]*p[1]; a+=f; cx+=(p[0]+q[0])*f; cy+=(p[1]+q[1])*f;}
+  a/=2;
+  if(Math.abs(a)<1e-12){ let sx=0,sy=0; for(const p of poly){sx+=p[0];sy+=p[1];} return [sx/n,sy/n]; }
+  return [cx/(6*a), cy/(6*a)];
+}
+function maxRadius(poly,x,y){ let m=0; for(const p of poly){const d=(p[0]-x)**2+(p[1]-y)**2; if(d>m)m=d;} return Math.sqrt(m); }
+function polyPath(poly){ let d='M'; for(let i=0;i<poly.length;i++){ d+=(i?'L':'')+poly[i][0].toFixed(2)+' '+poly[i][1].toFixed(2);} return d+'Z'; }
+function computeCells(list,b){
+  const pts=list.map(p=>{const q=proj(p.lat,p.lng); return {p,x:q.x,y:q.y};});
+  const n=pts.length;
+  const rect=[[b.x0,b.y0],[b.x1,b.y0],[b.x1,b.y1],[b.x0,b.y1]];
+  const cells=[];
+  for(let i=0;i<n;i++){
+    const a=pts[i], order=[];
+    for(let j=0;j<n;j++){ if(j===i)continue; const q=pts[j]; const dx=a.x-q.x,dy=a.y-q.y; order.push([dx*dx+dy*dy,q]); }
+    order.sort((u,v)=>u[0]-v[0]);
+    let poly=rect, maxR=maxRadius(poly,a.x,a.y);
+    for(let k=0;k<order.length;k++){
+      if(Math.sqrt(order[k][0])>2*maxR) break;
+      poly=clipHalfPlane(poly,a.x,a.y,order[k][1].x,order[k][1].y);
+      if(poly.length<3){ poly=[]; break; }
+      maxR=maxRadius(poly,a.x,a.y);
+    }
+    if(poly.length<3) continue;
+    cells.push({site:a,poly,area:polyArea(poly),centroid:polyCentroid(poly)});
+  }
+  return cells;
+}
+
+/* ======================= STATE ======================= */
+const svg=document.getElementById('map');
+const tileLayer=document.getElementById('tileLayer');
+const scrim=document.getElementById('scrim');
+const basinImg=document.getElementById('basinImg');
+const crowLayer=document.getElementById('crowLayer');
+const overlay=document.getElementById('overlay');
+const attribEl=document.getElementById('attrib');
+const tip=document.getElementById('tip');
+const modal=document.getElementById('modal');
+const legendEl=document.getElementById('legend');
+const hiddenEl=document.getElementById('hiddenList');
+const statsEl=document.getElementById('stats');
+
+const parishes=RAW.map(r=>({id:r[0],name:r[1],jurisdiction:r[2],city:r[3],state:r[4],lat:r[5],lng:r[6],miles:r[7],hidden:false,custom:false}));
+const byId=new Map(parishes.map(p=>[p.id,p]));
+let nextId=parishes.reduce((m,p)=>Math.max(m,p.id),0)+1;
+
+const offJuris=new Set();
+let domain=null, vb=null;
+let mode='drive';
+let offroadMph=14;
+const GRID_W=420, PASSES=6;
+
+let basinHref='', basinCounts=new Map(), basinAnchor=new Map(), basinJurFrac=new Map(), basinG=null;
+let basinDirty=true;
+let crowCells=[], crowDirty=true, crowJurFrac=new Map();
+
+function visible(){ return parishes.filter(p=>!p.hidden&&!offJuris.has(p.jurisdiction)); }
+
+const RING_PTS=(function(){
+  const d=500/EARTH_MI, N=240, pts=[];
+  for(let i=0;i<N;i++){ const t=destination(CENTER,d,i*2*Math.PI/N); pts.push(proj(t.lat,t.lng)); }
+  return pts;
+})();
+const RING='M'+RING_PTS.map(q=>q.x.toFixed(3)+' '+q.y.toFixed(3)).join('L')+'Z';
+document.getElementById('ringClipPath').setAttribute('d', RING);
+
+function computeDomain(){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  const acc=q=>{ if(q.x<x0)x0=q.x; if(q.x>x1)x1=q.x; if(q.y<y0)y0=q.y; if(q.y>y1)y1=q.y; };
+  for(const p of parishes) acc(proj(p.lat,p.lng));
+  for(const q of RING_PTS) acc(q);
+  if(!isFinite(x0)) return {x0:-1,x1:1,y0:-1,y1:1};
+  const pad=Math.max(x1-x0,y1-y0)*0.02+0.1;
+  return {x0:x0-pad,x1:x1+pad,y0:y0-pad,y1:y1+pad};
+}
+
+function fitView(){
+  const W=Math.max(1,svg.clientWidth||900), H=Math.max(1,svg.clientHeight||650);
+  let w=domain.x1-domain.x0, h=domain.y1-domain.y0;
+  const target=W/H;
+  if(w/h<target) w=h*target; else h=w/target;
+  const cx=(domain.x0+domain.x1)/2, cy=(domain.y0+domain.y1)/2;
+  vb={x:cx-w/2, y:cy-h/2, w, h};
+}
+
+function rebuildBasins(){
+  const vis=visible();
+  const G=gridFor(domain,GRID_W);
+  const speed=buildSpeedField(domain,G,offroadMph);
+  const seeds=seedCells(vis,domain,G);
+  const {lab}=propagateSweepFast(speed,G,seeds,PASSES);
+  const {gw,gh,cw,ch}=G;
+
+  const cnt=new Map(), sx=new Map(), sy=new Map();
+  for(let j=0;j<gh;j++){
+    const row=j*gw;
+    for(let i=0;i<gw;i++){
+      const l=lab[row+i];
+      if(l<0) continue;
+      cnt.set(l,(cnt.get(l)||0)+1);
+      sx.set(l,(sx.get(l)||0)+i);
+      sy.set(l,(sy.get(l)||0)+j);
+    }
+  }
+  basinCounts=cnt;
+
+  const seedOf=new Map(seeds.map(s=>[s.id,s]));
+  basinAnchor=new Map();
+  for(const [l,c] of cnt){
+    let ax=sx.get(l)/c, ay=sy.get(l)/c;
+    const ci=Math.round(ax), cj=Math.round(ay);
+    if(ci<0||cj<0||ci>=gw||cj>=gh||lab[cj*gw+ci]!==l){
+      const s=seedOf.get(l);
+      if(s){ ax=s.cx; ay=s.cy; }
+    }
+    basinAnchor.set(l,[domain.x0+(ax+0.5)*cw, domain.y0+(ay+0.5)*ch]);
+  }
+
+  let tot=0; const jc=new Map();
+  for(const [l,c] of cnt){ tot+=c; const p=byId.get(l); if(!p) continue; jc.set(p.jurisdiction,(jc.get(p.jurisdiction)||0)+c); }
+  basinJurFrac=new Map();
+  for(const [j,c] of jc) basinJurFrac.set(j, tot?c/tot:0);
+
+  const cv=basinCanvas(lab,gw,gh,id=>{ const p=byId.get(id); return p?colorOf(p.jurisdiction):'#94a3b8'; });
+  basinHref=cv.toDataURL('image/png');
+  basinG=G;
+  basinDirty=false;
+}
+
+function rebuildCrow(){
+  crowCells=computeCells(visible(),domain);
+  let tot=0; const jc=new Map();
+  for(const c of crowCells){ tot+=c.area; const j=c.site.p.jurisdiction; jc.set(j,(jc.get(j)||0)+c.area); }
+  crowJurFrac=new Map();
+  for(const [j,a] of jc) crowJurFrac.set(j, tot?a/tot:0);
+  crowDirty=false;
+}
+
+/* ======================= RENDER ======================= */
+let rafId=null, pendingRender=false;
+function schedule(){
+  if(pendingRender) return;
+  pendingRender=true;
+  rafId=requestAnimationFrame(()=>{ pendingRender=false; rafId=null; render(); });
+}
+
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function render(){
+  const W=Math.max(1,svg.clientWidth||900), H=Math.max(1,svg.clientHeight||650);
+  const upp=Math.max(vb.w/W, vb.h/H);
+  svg.setAttribute('viewBox', vb.x+' '+vb.y+' '+vb.w+' '+vb.h);
+
+  renderTiles(W);
+  scrim.setAttribute('x',vb.x); scrim.setAttribute('y',vb.y);
+  scrim.setAttribute('width',vb.w); scrim.setAttribute('height',vb.h);
+  scrim.setAttribute('opacity', PROVIDERS[provider].url?'0.30':'0');
+
+  const vis=visible();
+  const anchors=new Map(), weights=new Map();
+
+  if(mode==='drive'){
+    if(basinDirty) rebuildBasins();
+    crowLayer.innerHTML='';
+    basinImg.setAttribute('x',domain.x0);
+    basinImg.setAttribute('y',domain.y0);
+    basinImg.setAttribute('width',domain.x1-domain.x0);
+    basinImg.setAttribute('height',domain.y1-domain.y0);
+    basinImg.setAttribute('href',basinHref);
+    basinImg.style.display='';
+    const cellPx = basinG ? (basinG.cw/upp)*(basinG.ch/upp) : 0;
+    for(const [id,a] of basinAnchor){
+      anchors.set(id,a);
+      weights.set(id,(basinCounts.get(id)||0)*cellPx);
+    }
+  } else {
+    if(crowDirty) rebuildCrow();
+    basinImg.style.display='none';
+    basinImg.removeAttribute('href');
+    let h='';
+    for(const c of crowCells){
+      h+='<path class="crowCell" d="'+polyPath(c.poly)+'" fill="'+colorOf(c.site.p.jurisdiction)+'"/>';
+    }
+    crowLayer.innerHTML=h;
+    for(const c of crowCells){
+      anchors.set(c.site.p.id, c.centroid);
+      weights.set(c.site.p.id, c.area/(upp*upp));
+    }
+  }
+
+  tip.classList.remove('on');
+  const fs=11*upp, pr=5.5*upp;
+  const out=[];
+
+  out.push('<path class="ring" d="'+RING+'"/>');
+  const cp=proj(CENTER.lat,CENTER.lng);
+  out.push('<g class="centerMark"><circle cx="'+cp.x+'" cy="'+cp.y+'" r="'+(7*upp)+
+    '"/><path d="M'+(cp.x-15*upp)+' '+cp.y+'H'+(cp.x+15*upp)+'M'+cp.x+' '+(cp.y-15*upp)+'V'+(cp.y+15*upp)+'"/></g>');
+
+  out.push('<g class="labels" style="font-size:'+fs.toFixed(2)+'px;stroke-width:'+(3*upp).toFixed(3)+'">');
+  for(const p of vis){
+    const a=anchors.get(p.id), wt=weights.get(p.id)||0;
+    if(!a) continue;
+    if(wt<2600) continue;
+    let nm=p.name;
+    if(nm.length>34) nm=nm.slice(0,33).trim()+'\u2026';
+    out.push('<text x="'+a[0].toFixed(2)+'" y="'+a[1].toFixed(2)+'">'+esc(nm)+'</text>');
+  }
+  out.push('</g>');
+
+  out.push('<g>');
+  for(const p of vis){
+    const q=proj(p.lat,p.lng);
+    out.push('<circle class="pin'+(p.custom?' custom':'')+'" data-id="'+p.id+'" cx="'+q.x+'" cy="'+q.y+
+      '" r="'+pr.toFixed(3)+'" fill="'+colorOf(p.jurisdiction)+'"/>');
+  }
+  out.push('</g>');
+
+  overlay.innerHTML=out.join('');
+  renderSidebar();
+}
+
+function renderSidebar(){
+  const vis=visible();
+  const counts={};
+  for(const p of parishes) counts[p.jurisdiction]=(counts[p.jurisdiction]||0)+1;
+  const shown=new Set(vis.map(p=>p.jurisdiction));
+  statsEl.innerHTML='<b>'+vis.length+'</b> of <b>'+parishes.length+'</b> parishes &middot; <b>'+
+    shown.size+'</b> of '+Object.keys(counts).length+' jurisdictions &middot; '+mode.toUpperCase();
+
+  const frac = mode==='drive'?basinJurFrac:crowJurFrac;
+  const keys=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||a.localeCompare(b));
+  let h='';
+  for(const j of keys){
+    const off=offJuris.has(j);
+    const f=frac.get(j)||0;
+    h+='<button class="leg'+(off?' off':'')+'" data-jur="'+esc(j)+'" title="'+esc(fullName(j))+' — click to '+(off?'show':'hide')+'">'+
+      '<span class="dot" style="background:'+colorOf(j)+'"></span>'+
+      '<span class="jn">'+esc(j)+'</span>'+
+      '<span class="cnt">'+counts[j]+'</span>'+
+      '<span class="pct">'+(off?'\u2014':(f*100).toFixed(1)+'%')+'</span></button>';
+  }
+  legendEl.innerHTML=h;
+
+  const hid=parishes.filter(p=>p.hidden);
+  if(!hid.length){
+    hiddenEl.innerHTML='<p class="empty">Nothing hidden. Click any dot on the map to hide that parish.</p>';
+  } else {
+    hiddenEl.innerHTML=hid.map(p=>
+      '<div class="hrow"><span class="dot" style="background:'+colorOf(p.jurisdiction)+'"></span>'+
+      '<span class="hn" title="'+esc(p.name)+'">'+esc(p.name)+'</span>'+
+      '<button class="mini" data-restore="'+p.id+'">restore</button>'+
+      (p.custom?'<button class="mini danger" data-del="'+p.id+'">del</button>':'')+
+      '</div>').join('');
+  }
+}
+
+/* ======================= BASEMAP ======================= */
+const PROVIDERS={
+  usgs:{label:'SAT',max:16,attrib:'Imagery: USGS The National Map',
+    url:(z,x,y)=>'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/'+z+'/'+y+'/'+x},
+  esri:{label:'ESRI',max:19,attrib:'Imagery: Esri, Maxar, Earthstar Geographics',
+    url:(z,x,y)=>'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'+z+'/'+y+'/'+x},
+  none:{label:'OFF',max:0,attrib:'',url:null}
+};
+const PROVIDER_ORDER=['usgs','esri','none'];
+let provider='usgs', tileFailed=false;
+const tileEls=new Map();
+const SVGNS='http://www.w3.org/2000/svg';
+
+function updateAttrib(){
+  const p=PROVIDERS[provider];
+  attribEl.textContent=p.url?(p.attrib+(tileFailed?' \u2014 tiles blocked / offline':'')):'';
+}
+function clearTiles(){ tileEls.forEach(el=>el.remove()); tileEls.clear(); }
+
+function renderTiles(W){
+  const prov=PROVIDERS[provider];
+  if(!prov||!prov.url){ clearTiles(); updateAttrib(); return; }
+  let z=Math.round(Math.log2((360*W)/(256*vb.w)));
+  z=Math.max(2,Math.min(prov.max,z));
+  let S=360/Math.pow(2,z), tx0,tx1,ty0,ty1;
+  const span=()=>{
+    tx0=Math.floor((vb.x+180)/S); tx1=Math.floor((vb.x+vb.w+180)/S);
+    ty0=Math.floor((vb.y+180)/S); ty1=Math.floor((vb.y+vb.h+180)/S);
+  };
+  span();
+  while((tx1-tx0+1)*(ty1-ty0+1)>260 && z>2){ z--; S=360/Math.pow(2,z); span(); }
+  for(let ty=ty0;ty<=ty1;ty++) for(let tx=tx0;tx<=tx1;tx++){
+    const key=provider+'/'+z+'/'+tx+'/'+ty;
+    if(tileEls.has(key)) continue;
+    const img=document.createElementNS(SVGNS,'image');
+    img.setAttribute('x',(tx*S-180).toFixed(4));
+    img.setAttribute('y',(ty*S-180).toFixed(4));
+    img.setAttribute('width',S.toFixed(4));
+    img.setAttribute('height',S.toFixed(4));
+    img.setAttribute('preserveAspectRatio','none');
+    img.setAttribute('pointer-events','none');
+    const src=prov.url(z,tx,ty);
+    img.setAttribute('href',src);
+    try{ img.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href',src); }catch(e){}
+    img.addEventListener('error',()=>{ if(!tileFailed){ tileFailed=true; updateAttrib(); } });
+    tileLayer.appendChild(img);
+    tileEls.set(key,img);
+  }
+  tileEls.forEach((el,key)=>{
+    const p=key.split('/'); const zz=+p[1], tx=+p[2], ty=+p[3];
+    if(zz!==z||tx<tx0-1||tx>tx1+1||ty<ty0-1||ty>ty1+1){ el.remove(); tileEls.delete(key); }
+  });
+  updateAttrib();
+}
+
+/* ======================= VIEW ======================= */
+function toUser(clientX,clientY){
+  const pt=svg.createSVGPoint(); pt.x=clientX; pt.y=clientY;
+  const m=svg.getScreenCTM();
+  if(!m) return {x:0,y:0};
+  const q=pt.matrixTransform(m.inverse());
+  return {x:q.x,y:q.y};
+}
+function clampW(w){
+  const base=domain.x1-domain.x0;
+  return Math.min(base*2, Math.max(base/80, w));
+}
+function zoomAt(q,f){
+  const nw=clampW(vb.w*f), k=nw/vb.w;
+  vb.x=q.x-(q.x-vb.x)*k; vb.y=q.y-(q.y-vb.y)*k;
+  vb.w=nw; vb.h*=k;
+  schedule();
+}
+
+/* ======================= EVENTS ======================= */
+let drag=null, suppress=false;
+
+svg.addEventListener('pointerdown',e=>{
+  if(e.button!==0) return;
+  suppress=false;
+  drag={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};
+  try{ svg.setPointerCapture(e.pointerId); }catch(err){}
+});
+svg.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  if(!drag.moved && Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>4) drag.moved=true;
+  if(drag.moved){
+    const a=toUser(drag.x,drag.y), b=toUser(e.clientX,e.clientY);
+    vb.x-=(b.x-a.x); vb.y-=(b.y-a.y);
+    schedule();
+  }
+  drag.x=e.clientX; drag.y=e.clientY;
+});
+svg.addEventListener('pointerup',()=>{ if(drag&&drag.moved) suppress=true; drag=null; });
+svg.addEventListener('pointercancel',()=>{ drag=null; });
+svg.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoomAt(toUser(e.clientX,e.clientY), Math.exp(e.deltaY*0.0015));
+},{passive:false});
+
+svg.addEventListener('click',e=>{
+  if(suppress){ suppress=false; return; }
+  const pin=e.target.closest?e.target.closest('.pin'):null;
+  if(pin){
+    const p=byId.get(+pin.dataset.id);
+    if(p){ p.hidden=true; basinDirty=true; crowDirty=true; render(); }
+    return;
+  }
+  openCreate(toUser(e.clientX,e.clientY));
+});
+
+svg.addEventListener('mousemove',e=>{
+  const pin=e.target.closest?e.target.closest('.pin'):null;
+  if(!pin){ tip.classList.remove('on'); return; }
+  const p=byId.get(+pin.dataset.id);
+  if(!p) return;
+  let extra='';
+  if(mode==='drive'){
+    const c=basinCounts.get(p.id)||0, tot=basinG?basinG.gw*basinG.gh:0;
+    if(c&&tot) extra='<div class="tm">basin '+((c/tot)*100).toFixed(1)+'% of area</div>';
+  }
+  tip.innerHTML='<b>'+esc(p.name)+'</b>'+
+    '<div class="tj">'+esc(fullName(p.jurisdiction))+'</div>'+
+    '<div class="tm">'+esc(p.city)+(p.state?', '+esc(p.state):'')+' &middot; '+p.miles+' mi from Burns</div>'+extra;
+  tip.classList.add('on');
+  const w=tip.offsetWidth||230, hg=tip.offsetHeight||64;
+  let x=e.clientX+16, y=e.clientY+16;
+  if(x+w>innerWidth-8) x=e.clientX-w-16;
+  if(y+hg>innerHeight-8) y=e.clientY-hg-16;
+  tip.style.left=Math.max(8,x)+'px';
+  tip.style.top=Math.max(8,y)+'px';
+});
+svg.addEventListener('mouseleave',()=>tip.classList.remove('on'));
+
+legendEl.addEventListener('click',e=>{
+  const b=e.target.closest('.leg');
+  if(!b) return;
+  const j=b.dataset.jur;
+  if(offJuris.has(j)) offJuris.delete(j); else offJuris.add(j);
+  basinDirty=true; crowDirty=true; render();
+});
+
+hiddenEl.addEventListener('click',e=>{
+  const r=e.target.closest('[data-restore]');
+  if(r){
+    const p=byId.get(+r.dataset.restore);
+    if(p){ p.hidden=false; basinDirty=true; crowDirty=true; render(); }
+    return;
+  }
+  const d=e.target.closest('[data-del]');
+  if(d){
+    const id=+d.dataset.del;
+    const i=parishes.findIndex(p=>p.id===id);
+    if(i>=0){ parishes.splice(i,1); byId.delete(id); }
+    domain=computeDomain(); basinDirty=true; crowDirty=true; render();
+  }
+});
+
+document.getElementById('restoreAll').addEventListener('click',()=>{
+  for(const p of parishes) p.hidden=false;
+  offJuris.clear();
+  basinDirty=true; crowDirty=true; render();
+});
+
+document.getElementById('mode').addEventListener('click',()=>{
+  mode = mode==='drive'?'crow':'drive';
+  const b=document.getElementById('mode');
+  b.textContent = mode==='drive'?'DRIVE':'CROW';
+  b.classList.toggle('act', mode==='drive');
+  render();
+});
+
+document.getElementById('prov').addEventListener('click',()=>{
+  const i=PROVIDER_ORDER.indexOf(provider);
+  provider=PROVIDER_ORDER[(i+1)%PROVIDER_ORDER.length];
+  document.getElementById('prov').textContent=PROVIDERS[provider].label;
+  tileFailed=false; clearTiles(); render();
+});
+
+document.getElementById('zin').addEventListener('click',()=>{ zoomAt({x:vb.x+vb.w/2,y:vb.y+vb.h/2},0.72); });
+document.getElementById('zout').addEventListener('click',()=>{ zoomAt({x:vb.x+vb.w/2,y:vb.y+vb.h/2},1/0.72); });
+document.getElementById('zfit').addEventListener('click',()=>{ fitView(); schedule(); });
+
+const offRoadEl=document.getElementById('offRoad'), offValEl=document.getElementById('offVal');
+let sliderTimer=null;
+offRoadEl.addEventListener('input',()=>{
+  offroadMph=+offRoadEl.value;
+  offValEl.textContent=offroadMph+' mph';
+  basinDirty=true;
+  clearTimeout(sliderTimer);
+  sliderTimer=setTimeout(()=>{ render(); }, 90);
+});
+
+/* ======================= CREATE FLOW ======================= */
+let pending=null;
+const mName=document.getElementById('mName');
+const mJur=document.getElementById('mJur');
+const mCoords=document.getElementById('mCoords');
+
+mJur.innerHTML=Object.keys(JUR).map(j=>'<option value="'+esc(j)+'">'+esc(j)+' \u2014 '+esc(JUR[j].full)+'</option>').join('');
+
+function openCreate(q){
+  pending=q;
+  const ll=unproj(q.x,q.y);
+  mCoords.textContent=ll.lat.toFixed(4)+'\u00b0, '+ll.lng.toFixed(4)+'\u00b0  \u00b7  '+haversine(CENTER,ll).toFixed(1)+' mi from Burns';
+  mName.value=''; mJur.value='GOA';
+  modal.classList.add('open');
+  setTimeout(()=>mName.focus(),30);
+}
+function closeCreate(){ modal.classList.remove('open'); pending=null; }
+
+function addParish(){
+  if(!pending) return;
+  const ll=unproj(pending.x,pending.y);
+  const name=(mName.value||'').trim()||'Untitled parish';
+  const p={id:nextId++,name,jurisdiction:mJur.value,city:'\u2014',state:'',
+    lat:ll.lat,lng:ll.lng,miles:Math.round(haversine(CENTER,ll)*10)/10,hidden:false,custom:true};
+  parishes.push(p); byId.set(p.id,p);
+  const nd=computeDomain();
+  const grew=nd.x0<domain.x0||nd.x1>domain.x1||nd.y0<domain.y0||nd.y1>domain.y1;
+  domain=nd;
+  if(grew) fitView();
+  basinDirty=true; crowDirty=true;
+  closeCreate(); render();
+}
+
+document.getElementById('mAdd').addEventListener('click',addParish);
+document.getElementById('mCancel').addEventListener('click',closeCreate);
+modal.addEventListener('click',e=>{ if(e.target===modal) closeCreate(); });
+mName.addEventListener('keydown',e=>{ if(e.key==='Enter') addParish(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeCreate(); });
+
+/* ======================= BOOT ======================= */
+domain=computeDomain();
+fitView();
+render();
+
+let rsz=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(rsz);
+  rsz=setTimeout(()=>{
+    const W=Math.max(1,svg.clientWidth||900), H=Math.max(1,svg.clientHeight||650);
+    const cx=vb.x+vb.w/2, cy=vb.y+vb.h/2;
+    const h=vb.h, w=h*(W/H);
+    vb={x:cx-w/2,y:cy-h/2,w,h};
+    render();
+  },120);
+});
+</script>
+</body>
+</html>
