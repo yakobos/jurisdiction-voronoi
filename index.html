@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Drive-time basins + population — 500 mi around Burns, OR</title>
+<title>Drive-time basins + population — continental United States</title>
 <style>
 :root{--bg:#070a0f;--panel:#0f1520;--panel2:#151d2b;--line:#212c3c;--text:#e8eef7;--muted:#8b9cb3;--accent:#4dabf7}
 *{box-sizing:border-box}
@@ -49,15 +49,14 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
 #mapWrap{position:relative;flex:1;min-width:0;background:radial-gradient(120% 100% at 50% 0%,#0d1522 0%,#070a0f 70%)}
 #map{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
 .crowCell{fill-opacity:.5;stroke:#04070c;stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
-.pin{stroke:#04070c;stroke-width:1.6;vector-effect:non-scaling-stroke;cursor:pointer}
+.pin{stroke:#04070c;stroke-width:1.4;vector-effect:non-scaling-stroke;cursor:pointer}
 .pin:hover{stroke:#fff}
 .pin.custom{stroke:#fff;stroke-dasharray:2 2}
-.ring{fill:none;stroke:#9fd4ff;stroke-width:1.5;stroke-dasharray:6 6;vector-effect:non-scaling-stroke;opacity:.8;pointer-events:none}
-.centerMark{fill:none;stroke:#fff;stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.95;pointer-events:none}
+.usBorder{fill:none;stroke:#9fd4ff;stroke-width:1.2;vector-effect:non-scaling-stroke;opacity:.55;pointer-events:none}
 .labels{fill:#fff;text-anchor:middle;dominant-baseline:middle;font-weight:650;letter-spacing:.01em;paint-order:stroke;stroke:#04070c;stroke-linejoin:round;pointer-events:none}
 .labels .lp{font-weight:500;fill:#dbe7f5}
 .attrib{position:absolute;left:12px;bottom:10px;font-size:9.5px;color:#a8b8cc;opacity:.8;pointer-events:none;text-shadow:0 1px 2px #000;letter-spacing:.02em}
-#tip{position:fixed;z-index:20;max-width:320px;background:#0d1420;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12px;color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0;transform:translateY(4px);transition:opacity .1s,transform .1s;pointer-events:none}
+#tip{position:fixed;z-index:20;max-width:330px;background:#0d1420;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12px;color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0;transform:translateY(4px);transition:opacity .1s,transform .1s;pointer-events:none}
 #tip.on{opacity:1;transform:none}
 #tip .tj{color:var(--muted);font-size:11px;margin-top:2px}
 #tip .tm{color:#9fb2c9;font-size:11px;margin-top:4px;font-variant-numeric:tabular-nums}
@@ -87,7 +86,7 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
 <body>
 <div id="app">
   <aside id="sidebar">
-    <div id="sbHead"><h1>Drive-time basins</h1><p>500 mi radius &middot; Burns, OR &middot; population</p></div>
+    <div id="sbHead"><h1>Drive-time basins — USA</h1><p>Lower 48 + DC &middot; <span id="pcount">0</span> parishes &middot; population</p></div>
     <div id="sbBody">
       <div id="stats" class="stats"></div>
       <div class="sliderBox">
@@ -101,15 +100,15 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
       <h2 class="sec">Hidden <button id="restoreAll" class="mini">restore all</button></h2>
       <div id="hiddenList"></div>
     </div>
-    <div id="sbFoot">Click a dot to hide it &middot; click the map to add a parish<br>Drag to pan &middot; scroll to zoom</div>
+    <div id="sbFoot">Click a dot to hide it &middot; click the map to add a parish<br>Drag to pan &middot; scroll to zoom &middot; &#10530; refits the country</div>
   </aside>
   <main id="mapWrap">
     <svg id="map" xmlns="http://www.w3.org/2000/svg">
-      <defs><clipPath id="ringClip"><path id="ringClipPath" d=""/></clipPath></defs>
+      <defs><clipPath id="usClip"><path id="usClipPath" d=""/></clipPath></defs>
       <g id="tileLayer"></g>
       <rect id="scrim" x="0" y="0" width="1" height="1" fill="#04070c" opacity="0" pointer-events="none"/>
-      <image id="basinImg" clip-path="url(#ringClip)" preserveAspectRatio="none" opacity="0.6" pointer-events="none" style="image-rendering:auto"></image>
-      <g id="crowLayer" clip-path="url(#ringClip)"></g>
+      <image id="basinImg" clip-path="url(#usClip)" preserveAspectRatio="none" opacity="0.62" pointer-events="none" style="image-rendering:auto"></image>
+      <g id="crowLayer" clip-path="url(#usClip)"></g>
       <g id="overlay"></g>
     </svg>
     <div id="attrib" class="attrib"></div>
@@ -119,7 +118,7 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
       <button id="prov" class="wide" title="Cycle basemap">SAT</button>
       <button id="zin" title="Zoom in">+</button>
       <button id="zout" title="Zoom out">&minus;</button>
-      <button id="zfit" title="Fit to all">&#10530;</button>
+      <button id="zfit" title="Fit to country">&#10530;</button>
     </div>
   </main>
 </div>
@@ -137,200 +136,425 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
 </div>
 <script>
 /* =====================================================================
-   DRIVE-TIME BASINS + POPULATION
+   DRIVE-TIME BASINS + POPULATION — CONTINENTAL UNITED STATES
    Single file, no CDN, no build step, runs from file://
-   Basins = argmin over parishes of DRIVE TIME (multi-source shortest
-   path across a road-speed cost surface). Population per basin is a
-   histogram over the co-registered population raster.
-   Data: Assembly of Canonical Orthodox Bishops, 500 mi around Burns OR
+
+   Basins = argmin over parishes of DRIVE TIME (multi-source shortest path
+   across a road-speed cost surface). Population per basin is a histogram
+   over a co-registered population surface.
+
+   WHAT CHANGED FROM THE 500-MILE BURNS/OR VERSION
+   ------------------------------------------------
+   * Extent is now the lower 48 + DC. The old 500-mi ring and its clip path
+     are gone; the domain is a fixed CONUS bounding box and everything is
+     clipped to a simplified national outline (US_OUTLINE).
+   * RAW is a curated national sample of ~350 parishes covering all 48
+     states + DC.  >>> Replace RAW with an export of the full Assembly of
+     Canonical Bishops directory <<< (same tuple shape: id, name,
+     jurisdiction, city, state, lat, lng). Nothing else needs to change.
+   * PLACES / ROADS describe the Interstate + US-highway backbone of the
+     whole country instead of the Pacific Northwest. Still NOT OSM — swap in
+     a real OSM extract and buildSpeedField is the only function to touch.
+   * POP_METROS is a national set of ~200 metro kernels; the rural residual
+     is calibrated so the modelled total matches US population (~340M).
+   * Crow-flies mode assigns population with a uniform-speed sweep instead
+     of an O(N_sites) scan per cell (the old loop would be ~60M ops).
+
+   NOTE ON SCOPE: Alaska and Hawaii are outside the mapped extent. Web
+   Mercator at 71°N would triple the vertical span and squash the lower 48,
+   and neither state is reachable by the road graph. Both are modelled as
+   data (add them to POP_METROS if you only want them in the totals).
    ===================================================================== */
-const CENTER={lat:43.5863,lng:-119.0541};
-const RAW=[
-[1,"St. Jacob of Alaska Mission","OCA","Bend","OR",44.082195,-121.2037763,112.5],
-[2,"The Meeting of Our Lord Mission","OCA","Kuna","ID",43.4894635,-116.4139957,132.4],
-[3,"Holy Transfiguration Church","Antiochian","Meridian","ID",43.61354,-116.3897,133.3],
-[4,"St. Seraphim of Sarov Orthodox Church","ROCOR","Boise","ID",43.6297264,-116.2265446,141.5],
-[5,"Sts. Constantine & Helen Church","GOA","Boise","ID",43.623785,-116.223622,141.6],
-[6,"St. Silouan Orthodox Church","ROCOR","Walla Walla","WA",46.0649119,-118.3251125,174.9],
-[7,"The Dormition of the Theotokos Serbian Mission","Serbian","The Dalles","OR",45.6114002,-121.199452,175.3],
-[8,"Ss. Joachim & Anna Orthodox Mission","Antiochian","Goldendale","WA",45.82248,-120.8255,177.3],
-[9,"St. John Orthodox Mission","ROCOR","Kennewick","WA",46.200571,-119.2794693,181.0],
-[10,"St. Nectarios Mission","GOA","Pasco","WA",46.231941,-119.09671,182.8],
-[11,"St. George Church","GOA","Eugene","OR",44.099195,-123.059608,202.7],
-[12,"St John the Wonderworker Serbian Orthodox Church","Serbian","Eugene","OR",44.0564256,-123.1104724,204.8],
-[13,"New Russian Martyrs Church","ROCOR","Mulino","OR",45.2439222,-122.5829457,208.4],
-[14,"Descent of the Holy Spirit Church","OCA","Oregon City","OR",45.3074397,-122.5694316,210.2],
-[15,"Archangel Gabriel Mission","OCA","Phoenix","OR",42.2824979,-122.817534,210.6],
-[16,"Holy Resurrection Orthodox Church of Salem","GOA","Salem","OR",44.951997,-122.977339,215.8],
-[17,"Church of the Annunciation","OCA","Milwaukie","OR",45.4248643,-122.6054915,216.2],
-[18,"St. George Church","Antiochian","Portland","OR",45.53822,-122.4968,216.6],
-[19,"Falling Asleep of the Ever-Virgin Mary Church","OCA","Portland","OR",45.5194268,-122.5246193,216.8],
-[20,"Holy Cross Orthodox Church","GOA","Roseburg","OR",43.207639,-123.343613,216.9],
-[21,"St Stephen Archdeacon And Protomartyr Serbian Orthodox Church","Serbian","Milwaukie","OR",45.4403601,-122.6352252,218.0],
-[22,"Holy Cross Church","Antiochian","Yakima","WA",46.5868,-120.5159,219.2],
-[23,"St. John the Baptist Parish","UOCUSA","Portland","OR",45.4654782,-122.6488035,219.5],
-[24,"St. Anne Church","OCA","Corvallis","OR",44.6316108,-123.2404799,219.9],
-[25,"St. Martin the Merciful Church","ROCOR","Corvallis","OR",44.6046088,-123.2582424,220.1],
-[26,"Holy Trinity Cathedral","GOA","Portland","OR",45.52685,-122.632357,221.4],
-[27,"St. Nicholas Church","OCA","Portland","OR",45.4610765,-122.7005229,221.4],
-[28,"Church of St. Innocent of Irkutsk","ROCOR","Rogue River","OR",42.429259,-123.161554,222.4],
-[29,"Holy Apostles Church","OCA","Vancouver","WA",45.6498112,-122.6771137,228.2],
-[30,"St. John the Baptist Greek Orthodox Church","GOA","Beaverton","OR",45.513724,-122.825814,228.5],
-[31,"St. Matthew the Evangelist Mission","OCA","Vancouver","WA",45.6998301,-122.7076449,231.4],
-[32,"St. Katherine Mission Station","Antiochian","Pullman","WA",46.7318,-117.1812,235.7],
-[33,"St. Ignatius Church","Antiochian","Twin Falls","ID",42.56316,-114.4932,240.8],
-[34,"Prophet Elijah Mission","Antiochian","Ellensburg","WA",46.99122,-120.5573,246.3],
-[35,"St. Paisios of Mt. Athos Mission","Antiochian","Moses Lake","WA",47.16826,-119.27,247.7],
-[36,"St. Patrick Mission","OCA","Newport","OR",44.6451317,-124.0486497,258.3],
-[37,"St Andrew Fool-for-christ Serbian Orthodox Parish","Serbian","Redding","CA",40.5852561,-122.3916599,268.8],
-[38,"St. George Church","GOA","Redding","CA",40.5829,-122.3866,268.8],
-[39,"Three Holy Hierarchs Mission","Antiochian","Wenatchee","WA",47.45256,-120.3459,274.3],
-[40,"Holy Royal Martyrs of Russia Orthodox Church","ROCOR","Sparks","NV",39.5434619,-119.7523154,281.7],
-[41,"St John the Baptist Serbian Orthodox Church","Serbian","Reno","NV",39.4990126,-119.7986818,285.0],
-[42,"St. Anthony Church","GOA","Reno","NV",39.480392,-119.808821,286.4],
-[43,"Holy Trinity Church","GOA","Spokane","WA",47.673313,-117.417597,293.2],
-[44,"Christ the Savior Church","Antiochian","Spokane Valley","WA",47.64287,-117.2382,293.7],
-[45,"St. Brendan the Navigator Mission","OCA","Astoria","OR",46.1806636,-123.8518773,295.4],
-[46,"St. Nicholas Church","Antiochian","Spokane","WA",47.7041,-117.3901,295.6],
-[47,"Holy Trinity / Holy Resurrection Church","OCA","Tacoma","WA",47.1776733,-122.3927738,296.3],
-[48,"SS. Cyril and Methodius Mission","OCA","Chico","CA",39.7697794,-121.8431964,300.4],
-[49,"St. Nicholas Church","GOA","Tacoma","WA",47.247705,-122.445842,301.7],
-[50,"St Sava Serbian Orthodox Church","Serbian","Issaquah","WA",47.4685852,-122.0223299,304.2],
-[51,"St. John the Baptist Church","Antiochian","Post Falls","ID",47.72587,-116.8847,304.6],
-[52,"St. Luke Church","OCA","Chattaroy","WA",47.8594428,-117.2940393,307.2],
-[53,"St. Andrew","ROCOR","Carson City","NV",39.1714007,-119.7673835,307.3],
-[54,"All-Merciful Saviour Monastery","ROCOR","Vashon Island","WA",47.3646564,-122.4617547,308.8],
-[55,"Holy Trinity Mission","UOCUSA","Seattle","WA",47.618147,-122.2860373,319.3],
-[56,"Holy Nativity of the Theotokos Mission","Antiochian","Seattle","WA",47.61697,-122.3152,319.9],
-[57,"St. Nicholas Cathedral","ROCOR","Seattle","WA",47.6169719,-122.315184,319.9],
-[58,"Assumption Church","GOA","Seattle","WA",47.617794,-122.315168,320.0],
-[59,"St. Spiridon Cathedral","OCA","Seattle","WA",47.6221108,-122.3301299,320.6],
-[60,"St. Demetrios Church","GOA","Seattle","WA",47.638448,-122.307677,321.0],
-[61,"St. Katherine Church","OCA","Kirkland","WA",47.7279727,-122.1635101,323.1],
-[62,"Holy Protection of the Theotokos Orthodox Church","Serbian","Seattle","WA",47.6761745,-122.3217619,323.6],
-[63,"Saints Joachim and Anna Romanian Orthodox Church","Romanian","Seattle","WA",47.657905,-122.4004265,324.4],
-[64,"St. Innocent Church","OCA","Eureka","CA",40.7980928,-124.1647549,324.8],
-[65,"Holy Apostles Greek Orthodox Church","GOA","Shoreline","WA",47.769932,-122.340693,329.7],
-[66,"St. Paul Church","Antiochian","Brier","WA",47.80453,-122.2744,330.2],
-[67,"Three Hierarchs Church","OCA","Bellevue","WA",47.7937084,-122.3197842,330.6],
-[68,"St. Innocent Orthodox Church","ROCOR","Bremerton","WA",47.6462594,-122.6957038,331.1],
-[69,"St. Thomas Church","Antiochian","Snohomish","WA",47.92831,-122.1009,334.0],
-[70,"Annunciation Church","GOA","Missoula","MT",46.863753,-114.000879,334.2],
-[71,"St. Silouan Mission","OCA","Marysville","CA",39.1397126,-121.5988194,334.3],
-[72,"Assumption Church","GOA","Pocatello","ID",42.869789,-112.446999,336.2],
-[73,"St. Elizabeth the New Martyr Church","OCA","Poulsbo","WA",47.8037371,-122.6522031,339.1],
-[74,"St. Elias Orthodox Mission","ROCOR","Diamond Springs","CA",38.693374,-120.812685,350.2],
-[75,"St. Andrew Church","Antiochian","Arlington","WA",48.20008,-122.1236,351.2],
-[76,"St. Anna Greek Orthodox Church","GOA","Roseville","CA",38.759717,-121.244172,352.4],
-[77,"St. Gabriel the Archangel","ROCOR","Stanwood","WA",48.2468671,-122.3223395,358.2],
-[78,"Holy Resurrection Romanian Orthodox Church","Romanian","Antelope","CA",38.7036816,-121.3899638,358.5],
-[79,"Holy Trinity Mission","UOCUSA","Sacramento","CA",38.6880523,-121.3481286,358.8],
-[80,"St. Olga Chapel (St. George Pathfinders Camp)","ROCOR","Laytonville","CA",39.6255684,-123.5778491,359.8],
-[81,"Assumption of the Blessed Virgin Mary Serbian Orthodox Church","Serbian","Fair Oaks","CA",38.6536148,-121.2795828,359.9],
-[82,"St. Herman of Alaska Church","OCA","Port Townsend","WA",48.1216357,-122.7927771,361.2],
-[83,"Holy Trinity Serbian Orthodox Church","Serbian","Butte","MT",45.9912258,-112.486381,362.2],
-[84,"SS. Michael and Gabriel Church","OCA","Sacramento","CA",38.6521116,-121.4295455,362.6],
-[85,"St. Stephen Orthodox Church","GOA","Rancho Cordova","CA",38.6081317,-121.2747538,362.8],
-[86,"St. Barbara Chapel","GOA","McGill","NV",39.403429,-114.7791,363.9],
-[87,"St. Alexios Chapel","GOA","Ely","NV",39.332636,-114.824507,366.4],
-[88,"Annunciation Church","GOA","Sacramento","CA",38.577004,-121.463513,368.1],
-[89,"Holy Ascension Church","ROCOR","Sacramento","CA",38.5823308,-121.4880832,368.2],
-[90,"Holy Myrrhbearing Women Church","OCA","West Sacramento","CA",38.5919104,-121.5411929,368.5],
-[91,"St. Sophrony of Essex Mission","OCA","Sequim","WA",48.0911793,-123.1737834,368.9],
-[92,"Elevation of the Holy Cross Church","OCA","Sacramento","CA",38.5365537,-121.367207,369.1],
-[93,"Holy Virgin Mary Church","Antiochian","West Sacramento","CA",38.54216,-121.5481,371.9],
-[94,"St Sava Serbian Orthodox Church","Serbian","Jackson","CA",38.3561074,-120.7763236,372.3],
-[95,"St. Athanasius Church","Antiochian","Sacramento","CA",38.47033,-121.3899,373.8],
-[96,"Life Giving Spring Orthodox Mission","GOA","Ukiah","CA",39.14713,-123.1993033,374.4],
-[97,"St. Katherine Greek Orthodox Church","GOA","Elk Grove","CA",38.424366,-121.468296,378.2],
-[98,"St Basil of Ostrog Serbian Orthodox Mission","Serbian","Altaville","CA",38.0803249,-120.5591368,388.5],
-[99,"St. Gabriel Mission","Antiochian","Angels Camp","CA",38.07062,-120.541,388.9],
-[100,"Saint Silouan Monastery","ROCOR","Sonora","CA",38.011156,-120.387769,391.5],
-[101,"St. Susanna Mission","OCA","Sonora","CA",37.994625,-120.4096375,392.8],
-[102,"Saint Sophia Church","GOA","Bellingham","WA",48.769288,-122.469284,393.5],
-[103,"All Saints Orthodox Church","ROCOR","Lodi","CA",38.1385968,-121.2894628,394.1],
-[104,"Transfiguration Church","GOA","Ogden","UT",41.186064,-111.96338,397.9],
-[105,"Holy Myrrhbearing Women Mission","Antiochian","Bonners Ferry","ID",48.99651,-116.1839,398.1],
-[106,"St. Innocent Church","Antiochian","Everson","WA",48.91215,-122.2899,399.0],
-[107,"St. Timothy Church","Antiochian","Fairfield","CA",38.21978,-122.1305,404.0],
-[108,"St. Basil Church","GOA","Stockton","CA",37.988952,-121.316657,404.4],
-[109,"Holy Dormition Orthodox Church","Bulgarian","Santa Rosa","CA",38.4262511,-122.7361534,404.8],
-[110,"St. Moses the Strong Mission","OCA","Helena","MT",46.7304449,-112.0259616,405.3],
-[111,"St. Seraphim of Sarov Cathedral / Holy Protection","OCA","Santa Rosa","CA",38.3784551,-122.7109727,407.1],
-[112,"Sts. Peter and Paul Russian Orthodox Church","ROCOR","Santa Rosa","CA",38.390812,-122.743313,407.2],
-[113,"Holy Virgin of Kazan Church","ROCOR","Guerneville","CA",38.4914021,-123.0126545,407.9],
-[114,"St. George Orthodox Church","GOA","Rohnert Park","CA",38.3352904,-122.7081124,409.7],
-[115,"Holy Trinity Chapel","ROCOR","Jenner","CA",38.5183012,-123.2384425,412.4],
-[116,"Sts. Constantine & Helen Church","GOA","Vallejo","CA",38.109126,-122.243937,413.4],
-[117,"Holy Trinity Cathedral","GOA","Salt Lake City","UT",40.763126,-111.899264,414.8],
-[118,"St Archangel Michael Serbian Orthodox Parish","Serbian","Salt Lake City","UT",40.7346805,-111.9192234,414.9],
-[119,"St. Anthony the Great Church","OCA","Bozeman","MT",45.724423,-111.1461862,415.6],
-[120,"Holy Cross Orthodox Mission","GOA","Manteca","CA",37.7974273,-121.2160526,415.7],
-[121,"Ss. Peter and Paul Church","Antiochian","Salt Lake City","UT",40.76138,-111.8821,415.7],
-[122,"St. Michael the Archangel Church","OCA","Concord","CA",37.9955898,-122.033331,416.5],
-[123,"SS. Kyrill and Metodi Mission","OCA","Martinez","CA",38.0142968,-122.11811,416.9],
-[124,"St. Demetrios Greek Orthodox Church","GOA","Concord","CA",37.962321,-121.944586,416.9],
-[125,"St. George Russian Orthodox Church","ROCOR","Murray","UT",40.627879,-111.929927,418.3],
-[126,"Annunciation Church","GOA","Modesto","CA",37.672833,-120.988956,421.0],
-[127,"St. Thomas the Apostle Mission","OCA","Pleasant Hill","CA",37.931045,-122.0738951,421.4],
-[128,"Prophet Elias Church","GOA","Holladay","UT",40.653111,-111.834765,421.6],
-[129,"St. Anna Church","GOA","Sandy","UT",40.655097,-111.833966,421.6],
-[130,"Nativity of Christ Church","GOA","Novato","CA",38.071143,-122.552769,422.6],
-[131,"Sts. Peter & Paul Orthodox Church","GOA","Walnut Creek","CA",37.901896,-122.0682507,423.2],
-[132,"St. James Church","Antiochian","Modesto","CA",37.63902,-121.0178,423.6],
-[133,"St. John the Evangelist Church","Antiochian","Orinda","CA",37.85643,-122.1542,427.8],
-[134,"Holy Trinity Serbian Orthodox Church","Serbian","Moraga","CA",37.8327034,-122.133396,428.9],
-[135,"St. Nicholas Church","OCA","San Anselmo","CA",37.9715647,-122.5656426,429.1],
-[136,"St. John the Baptist Church","OCA","Berkeley","CA",37.8532881,-122.2692001,430.3],
-[137,"Ascension of the Lord Romanian Orthodox Mission","Romanian","Piedmont","CA",37.8185616,-122.210934,431.4],
-[138,"Ascension Cathedral","GOA","Oakland","CA",37.80952,-122.201574,431.8],
-[139,"St George Serbian Orthodox Church","Serbian","Oakland","CA",37.7976292,-122.264604,433.8],
-[140,"St. Innocent Church","OCA","Pleasanton","CA",37.6717398,-121.8679684,434.4],
-[141,"St. John of Kronstadt House Church","ROCOR","Castro Valley","CA",37.7070486,-122.0699845,435.8],
-[142,"Church of the Resurrection","GOA","Castro Valley","CA",37.697122,-122.061471,436.3],
-[143,"Holy Trinity Cathedral","OCA","San Francisco","CA",37.7977399,-122.4243436,437.1],
-[144,"St. Michael Parish","UOCUSA","San Francisco","CA",37.7763453,-122.4068843,438.1],
-[145,"St John the Baptist Serbian Orthodox Cathedral","Serbian","San Francisco","CA",37.7796816,-122.4415239,438.6],
-[146,"St. Mary Magdalene Mission","OCA","Atwater","CA",37.3476706,-120.5963751,438.6],
-[147,"Holy Resurrection Orthodox Church","ROCOR","San Francisco","CA",37.786448,-122.46497,438.7],
-[148,"Annunciation Cathedral","GOA","San Francisco","CA",37.768777,-122.421806,438.9],
-[149,"Church of the Mother of God of Kazan","ROCOR","San Francisco","CA",37.7839524,-122.4791085,439.1],
-[150,"St. Nicholas Cathedral","Moscow Patriarchate","San Francisco","CA",37.7661305,-122.4289047,439.2],
-[151,"St. Simeon Verkhotursky Russian Orthodox Church","ROCOR","San Francisco","CA",37.7816,-122.4736,439.2],
-[152,"Christ the Saviour Church","OCA","San Francisco","CA",37.7789808,-122.4703134,439.3],
-[153,"Holy Virgin Joy of All Who Sorrow Cathedral","ROCOR","San Francisco","CA",37.7803481,-122.486305,439.5],
-[154,"St. Tikhon of Zadonsk Orthodox Church","ROCOR","San Francisco","CA",37.7770026,-122.4735775,439.5],
-[155,"St. Sergius of Radonezh Church","ROCOR","San Francisco","CA",37.7630157,-122.469225,440.2],
-[156,"Holy Resurrection Church","OCA","Hayward","CA",37.6393215,-122.0979725,440.7],
-[157,"St. Nicholas Church","Antiochian","San Francisco","CA",37.74492,-122.4404,440.8],
-[158,"St. Xenia of St. Petersburg Mission","ROCOR","San Francisco","CA",37.7577,-122.4855,440.9],
-[159,"Holy Trinity Church","GOA","San Francisco","CA",37.713737,-122.481773,443.7],
-[160,"St. Christina of Tyre Church","OCA","Fremont","CA",37.5594134,-122.0032202,444.2],
-[161,"Iviron Icon of the Mother of God Georgian Orthodox Church","Georgian","Colma","CA",37.679978,-122.450651,445.2],
-[162,"St. George Orthodox Cathedral","GOA","Daly City","CA",37.6757751,-122.4710884,445.8],
-[163,"St. Xenia Mission","Antiochian","Payson","UT",40.0255,-111.7679,448.5],
-[164,"Church of All Russian Saints","ROCOR","Burlingame","CA",37.579794,-122.3578218,449.7],
-[165,"St. James Orthodox Church","GOA","Milpitas","CA",37.4330957,-121.9086133,450.7],
-[166,"Holy Cross Church","GOA","Belmont","CA",37.513111,-122.295665,452.7],
-[167,"Holy Cross Church","OCA","San Jose","CA",37.3507521,-121.814657,454.5],
-[168,"Nativity of the Holy Virgin Church","OCA","Menlo Park","CA",37.4524958,-122.186578,454.5],
-[169,"Protection of the Holy Virgin Church","ROCOR","Palo Alto","CA",37.42863,-122.1151417,454.7],
-[170,"St. Herman of Alaska Church","ROCOR","Sunnyvale","CA",37.3800914,-122.0294657,456.3],
-[171,"St. Nicholas Church","GOA","San Jose","CA",37.340551,-121.927636,457.1],
-[172,"Orthodox Church of the Redeemer","Antiochian","Los Altos Hills","CA",37.35327,-122.1056,459.5],
-[173,"St. Mark the Evangelist Mission","OCA","Great Falls","MT",47.4946096,-111.3262706,460.9],
-[174,"St. Stephen Church","Antiochian","Campbell","CA",37.28514,-121.9488,461.1],
-[175,"Sts. Constantine & Helen Church","GOA","Great Falls","MT",47.5065794,-111.2883505,462.9],
-[176,"St Archangel Michael Serbian Orthodox Church","Serbian","Saratoga","CA",37.2666403,-122.0018633,463.3],
-[177,"St. Basil Church","GOA","San Jose","CA",37.223249,-121.866811,463.8],
-[178,"St. Nicholas Church","OCA","Saratoga","CA",37.261431,-122.0375401,464.2],
-[179,"St Peter the Apostle Serbian Orthodox Church","Serbian","Fresno","CA",36.7825429,-119.771351,471.6],
-[180,"St. George Church","GOA","Fresno","CA",36.771094,-119.775398,472.4],
-[181,"SS. Peter and Paul Church","Antiochian","Ben Lomond","CA",37.09301,-122.0957,476.3],
-[182,"St. Lawrence Orthodox Church","GOA","Felton","CA",37.0509917,-122.0730344,478.6],
-[183,"St. John the Baptist Church","GOA","Carmel-by-the-Sea","CA",36.916803,-121.763338,482.4],
-[184,"Prophet Elias Church","GOA","Santa Cruz","CA",36.973855,-122.02844,482.9]
+
+/* ---- extent of the analysis (CONUS) ---- */
+const US_BOUNDS={west:-125.2,east:-66.6,south:24.2,north:49.6};
+
+/* Simplified national outline, [lng,lat], clockwise from Cape Flattery.
+   Used for (a) the SVG clip path, (b) the population land mask, (c) a
+   drawn border. Coarse on purpose — ~110 vertices, lakes excluded. */
+const US_OUTLINE=[
+[-124.73,48.39],[-124.10,47.90],[-124.05,46.90],[-123.95,46.20],[-123.95,45.50],
+[-124.10,44.60],[-124.20,43.50],[-124.40,43.30],[-124.35,42.85],[-124.20,42.00],
+[-124.10,41.75],[-124.15,41.00],[-124.40,40.44],[-123.80,39.50],[-123.70,38.95],
+[-122.95,38.30],[-122.50,37.80],[-122.00,37.00],[-121.90,36.60],[-120.85,35.35],
+[-120.60,34.55],[-119.70,34.40],[-118.40,33.75],[-117.10,32.55],
+[-114.72,32.72],[-111.00,31.33],[-108.20,31.33],[-106.50,31.78],[-104.90,30.60],
+[-103.30,29.00],[-101.40,29.77],[-99.50,27.55],[-99.10,26.40],[-97.15,25.95],
+[-97.40,27.80],[-96.40,28.40],[-95.00,29.30],[-93.85,29.75],[-91.60,29.55],
+[-89.20,29.15],[-88.10,30.35],[-87.20,30.40],[-85.70,30.10],[-84.30,30.10],
+[-83.00,29.10],[-82.65,27.85],[-81.80,26.10],[-81.20,25.35],[-80.40,25.20],
+[-80.05,26.70],[-80.60,28.40],[-81.00,29.20],[-81.40,30.40],[-81.20,31.40],
+[-80.80,32.10],[-79.20,33.10],[-78.00,33.90],[-75.85,35.25],[-76.00,36.90],
+[-75.40,38.50],[-74.95,38.95],[-74.05,39.75],[-74.00,40.65],[-72.00,41.05],
+[-71.90,41.35],[-71.00,41.50],[-70.60,41.90],[-70.50,42.30],[-70.90,43.10],
+[-70.20,43.60],[-69.80,43.80],[-68.80,44.30],[-67.90,44.80],[-67.20,45.20],
+[-67.80,45.70],[-68.20,46.30],[-69.05,47.46],[-70.00,46.70],[-71.10,45.35],
+[-71.50,45.01],[-72.55,45.01],[-74.70,45.00],[-75.20,44.95],[-76.20,44.10],
+[-76.90,43.60],[-77.60,43.25],[-79.00,43.27],[-78.90,42.90],[-80.50,42.45],
+[-82.50,41.85],[-83.10,41.75],[-83.05,42.33],[-82.42,42.97],[-83.40,44.00],
+[-83.43,45.06],[-84.73,45.78],[-84.98,45.37],[-85.62,44.76],[-86.45,43.96],
+[-86.25,43.23],[-86.11,42.79],[-86.45,42.12],[-87.35,41.62],[-87.62,41.88],
+[-87.90,43.04],[-88.00,44.52],[-87.06,45.74],[-86.25,45.96],[-84.72,45.87],
+[-84.35,46.50],[-87.40,46.55],[-88.57,47.12],[-92.10,46.78],[-89.60,48.00],
+[-90.80,48.10],[-92.00,48.35],[-93.40,48.60],[-94.80,48.75],[-95.15,49.00],
+[-123.10,49.00],[-122.75,48.99],[-123.20,48.20],[-124.10,47.90]
 ];
+
+/* ---- parishes: [id, name, jurisdiction, city, state, lat, lng] ----
+   Curated national sample. Names/jurisdictions/coordinates are approximate
+   for many entries — swap in the official directory for production use. */
+const RAW=[
+/* AL */[1,"Holy Trinity Greek Orthodox Cathedral","GOA","Birmingham","AL",33.5186,-86.8104],
+[2,"Annunciation Greek Orthodox Church","GOA","Mobile","AL",30.6954,-88.0399],
+[3,"St. Nicholas Orthodox Church","GOA","Huntsville","AL",34.7304,-86.5861],
+[4,"Annunciation Greek Orthodox Church","GOA","Montgomery","AL",32.3668,-86.3000],
+[5,"St. Athanasius Orthodox Mission","OCA","Dothan","AL",31.2232,-85.3905],
+/* AZ */[6,"Holy Trinity Greek Orthodox Cathedral","GOA","Phoenix","AZ",33.4484,-112.0740],
+[7,"St. Haralambos Greek Orthodox Church","GOA","Peoria","AZ",33.5806,-112.2374],
+[8,"Assumption Greek Orthodox Church","GOA","Scottsdale","AZ",33.4942,-111.9261],
+[9,"St. George Orthodox Church","Antiochian","Phoenix","AZ",33.4650,-112.0300],
+[10,"St. Demetrios Greek Orthodox Church","GOA","Tucson","AZ",32.2226,-110.9747],
+[11,"St. Nicholas Orthodox Church","OCA","Tucson","AZ",32.2400,-110.9300],
+[12,"St. George Orthodox Church","Antiochian","Prescott","AZ",34.5400,-112.4685],
+[13,"Holy Nativity Orthodox Church","OCA","Flagstaff","AZ",35.1983,-111.6513],
+[14,"St. John the Baptist Greek Orthodox Church","GOA","Yuma","AZ",32.6927,-114.6277],
+/* AR */[15,"Annunciation Greek Orthodox Church","GOA","Little Rock","AR",34.7465,-92.2896],
+[16,"St. Nicholas Orthodox Church","OCA","Fayetteville","AR",36.0626,-94.1574],
+[17,"St. George Orthodox Church","Antiochian","Fort Smith","AR",35.3859,-94.3985],
+[18,"St. Luke Orthodox Mission","OCA","Hot Springs","AR",34.5037,-93.0552],
+/* CA */[19,"Holy Trinity Cathedral","OCA","San Francisco","CA",37.7974,-122.4270],
+[20,"Holy Virgin Cathedral","ROCOR","San Francisco","CA",37.7804,-122.4780],
+[21,"Annunciation Cathedral","GOA","San Francisco","CA",37.7688,-122.4218],
+[22,"St. Nicholas Cathedral","Moscow Patriarchate","San Francisco","CA",37.7661,-122.4289],
+[23,"Holy Resurrection Orthodox Church","OCA","San Francisco","CA",37.7400,-122.4700],
+[24,"St. Sophia Greek Orthodox Cathedral","GOA","Los Angeles","CA",34.0600,-118.3000],
+[25,"St. Anthony Greek Orthodox Church","GOA","Pasadena","CA",34.1478,-118.1445],
+[26,"St. Nicholas Greek Orthodox Church","GOA","San Pedro","CA",33.7360,-118.2920],
+[27,"Holy Virgin Mary Russian Orthodox Church","ROCOR","Los Angeles","CA",34.0800,-118.2700],
+[28,"St. Katherine Greek Orthodox Church","GOA","Redondo Beach","CA",33.8492,-118.3884],
+[29,"St. Demetrios Greek Orthodox Church","GOA","Camarillo","CA",34.2164,-119.0376],
+[30,"Assumption of the Blessed Virgin Mary","Serbian","Los Angeles","CA",34.0400,-118.2600],
+[31,"St. John the Baptist Greek Orthodox Church","GOA","Anaheim","CA",33.8366,-117.9143],
+[32,"St. Paul's Greek Orthodox Church","GOA","Irvine","CA",33.6846,-117.8265],
+[33,"St. George Serbian Orthodox Church","Serbian","San Diego","CA",32.7157,-117.1611],
+[34,"St. Spyridon Greek Orthodox Church","GOA","San Diego","CA",32.7800,-117.1300],
+[35,"St. Anthony Orthodox Church","Antiochian","San Diego","CA",32.8000,-117.2000],
+[36,"Annunciation Greek Orthodox Church","GOA","Sacramento","CA",38.5816,-121.4944],
+[37,"St. Anna Greek Orthodox Church","GOA","Roseville","CA",38.7521,-121.2880],
+[38,"Ascension Greek Orthodox Cathedral","GOA","Oakland","CA",37.8300,-122.2500],
+[39,"St. Basil the Great Orthodox Church","OCA","San Jose","CA",37.3382,-121.8863],
+[40,"St. Nicholas Orthodox Church","OCA","Saratoga","CA",37.2600,-122.0200],
+[41,"St. Herman of Alaska Orthodox Church","ROCOR","Sunnyvale","CA",37.3688,-122.0363],
+[42,"St. George Greek Orthodox Church","GOA","Fresno","CA",36.7378,-119.7871],
+[43,"St. Peter the Apostle Serbian Orthodox Church","Serbian","Fresno","CA",36.7700,-119.7900],
+[44,"St. George Greek Orthodox Church","GOA","Bakersfield","CA",35.3733,-119.0187],
+[45,"St. Demetrios Greek Orthodox Church","GOA","Stockton","CA",37.9577,-121.2908],
+[46,"Annunciation Greek Orthodox Church","GOA","Modesto","CA",37.6391,-120.9969],
+[47,"St. Innocent Orthodox Church","OCA","Redding","CA",40.5865,-122.3917],
+[48,"Holy Trinity Orthodox Church","OCA","Eureka","CA",40.8021,-124.1637],
+[49,"St. John's Orthodox Church","Antiochian","Chico","CA",39.7285,-121.8375],
+[50,"St. Stephen Orthodox Church","OCA","Santa Rosa","CA",38.4404,-122.7141],
+[51,"Holy Dormition Orthodox Church","Bulgarian","Santa Rosa","CA",38.4400,-122.7200],
+[52,"St. John the Baptist Orthodox Church","OCA","Berkeley","CA",37.8715,-122.2730],
+[53,"St. Demetrios Greek Orthodox Church","GOA","Concord","CA",37.9780,-122.0311],
+[54,"Sts. Constantine & Helen Greek Orthodox Church","GOA","Vallejo","CA",38.1041,-122.2566],
+[55,"Holy Cross Greek Orthodox Church","GOA","Belmont","CA",37.5202,-122.2758],
+[56,"Prophet Elias Greek Orthodox Church","GOA","Santa Cruz","CA",36.9741,-122.0308],
+[57,"St. Timothy Orthodox Church","Antiochian","Fairfield","CA",38.2494,-122.0400],
+[58,"St. Andrew Orthodox Church","OCA","Riverside","CA",33.9533,-117.3962],
+/* CO */[59,"Assumption of the Theotokos Greek Orthodox Cathedral","GOA","Denver","CO",39.7392,-104.9903],
+[60,"St. Catherine Greek Orthodox Church","GOA","Greenwood Village","CO",39.6172,-104.9500],
+[61,"St. Anthony Greek Orthodox Church","GOA","Denver","CO",39.7300,-104.9500],
+[62,"Archangel Michael Greek Orthodox Church","GOA","Colorado Springs","CO",38.8339,-104.8214],
+[63,"St. Nicholas Orthodox Church","OCA","Boulder","CO",40.0150,-105.2705],
+[64,"St. John the Baptist Orthodox Church","OCA","Fort Collins","CO",40.5853,-105.0844],
+[65,"St. Michael Orthodox Church","OCA","Pueblo","CO",38.2544,-104.6091],
+[66,"St. Nicholas Orthodox Church","OCA","Grand Junction","CO",39.0639,-108.5506],
+/* CT */[67,"St. George Greek Orthodox Cathedral","GOA","Hartford","CT",41.7658,-72.6851],
+[68,"St. Barbara Greek Orthodox Church","GOA","Orange","CT",41.2787,-73.0257],
+[69,"St. George Greek Orthodox Church","GOA","New Haven","CT",41.3083,-72.9279],
+[70,"St. Nicholas Orthodox Church","OCA","Stratford","CT",41.1845,-73.1332],
+[71,"St. John the Baptist Orthodox Church","OCA","Bridgeport","CT",41.1792,-73.1894],
+[72,"Holy Trinity Orthodox Church","OCA","Willimantic","CT",41.7107,-72.2087],
+[73,"St. Sophia Greek Orthodox Church","GOA","New London","CT",41.3557,-72.0995],
+/* DE */[74,"Holy Trinity Greek Orthodox Church","GOA","Wilmington","DE",39.7391,-75.5398],
+/* DC */[75,"St. Nicholas Orthodox Cathedral","OCA","Washington","DC",38.9072,-77.0369],
+[76,"St. Sophia Greek Orthodox Cathedral","GOA","Washington","DC",38.9200,-77.0400],
+[77,"St. George Antiochian Orthodox Church","Antiochian","Washington","DC",38.9300,-77.0300],
+/* FL */[78,"St. Sophia Greek Orthodox Cathedral","GOA","Miami","FL",25.7617,-80.1918],
+[79,"St. Andrew Greek Orthodox Church","GOA","Miami","FL",25.7800,-80.2100],
+[80,"St. Demetrios Greek Orthodox Church","GOA","Hollywood","FL",26.0112,-80.1495],
+[81,"St. Catherine Greek Orthodox Church","GOA","West Palm Beach","FL",26.7153,-80.0534],
+[82,"St. Mark Greek Orthodox Church","GOA","Boca Raton","FL",26.3683,-80.1289],
+[83,"St. Nicholas Greek Orthodox Cathedral","GOA","Tarpon Springs","FL",28.1461,-82.7568],
+[84,"St. John the Baptist Greek Orthodox Church","GOA","Tampa","FL",27.9506,-82.4572],
+[85,"St. Stefanos Greek Orthodox Church","GOA","St. Petersburg","FL",27.7709,-82.6793],
+[86,"St. Barbara Greek Orthodox Church","GOA","Sarasota","FL",27.3364,-82.5307],
+[87,"Holy Trinity Greek Orthodox Church","GOA","Orlando","FL",28.5383,-81.3792],
+[88,"St. Katherine Greek Orthodox Church","GOA","Melbourne","FL",28.0836,-80.6081],
+[89,"St. John the Divine Greek Orthodox Church","GOA","Jacksonville","FL",30.3322,-81.6557],
+[90,"Holy Mother of God Greek Orthodox Church","GOA","Tallahassee","FL",30.4383,-84.2807],
+[91,"St. Elizabeth Greek Orthodox Church","GOA","Gainesville","FL",29.6516,-82.3248],
+[92,"Annunciation Greek Orthodox Church","GOA","Fort Myers","FL",26.6406,-81.8723],
+[93,"St. Katherine Greek Orthodox Church","GOA","Naples","FL",26.1423,-81.7948],
+[94,"Annunciation Greek Orthodox Church","GOA","Pensacola","FL",30.4213,-87.2169],
+[95,"St. Demetrios Greek Orthodox Church","GOA","Daytona Beach","FL",29.2108,-81.0228],
+/* GA */[96,"Annunciation Greek Orthodox Cathedral","GOA","Atlanta","GA",33.7490,-84.3880],
+[97,"Holy Transfiguration Greek Orthodox Church","GOA","Marietta","GA",33.9526,-84.5499],
+[98,"St. Elias Antiochian Orthodox Church","Antiochian","Atlanta","GA",33.8000,-84.3000],
+[99,"St. Paul Greek Orthodox Church","GOA","Savannah","GA",32.0809,-81.0912],
+[100,"Holy Trinity Greek Orthodox Church","GOA","Augusta","GA",33.4700,-81.9748],
+[101,"St. Innocent Orthodox Church","OCA","Macon","GA",32.8407,-83.6324],
+[102,"Holy Transfiguration Orthodox Church","OCA","Columbus","GA",32.4609,-84.9877],
+/* ID */[103,"St. Seraphim of Sarov Orthodox Church","ROCOR","Boise","ID",43.6150,-116.2023],
+[104,"Sts. Constantine & Helen Greek Orthodox Church","GOA","Boise","ID",43.6200,-116.2200],
+[105,"St. John the Baptist Orthodox Church","OCA","Post Falls","ID",47.7179,-116.9480],
+[106,"Assumption of the Virgin Mary Greek Orthodox Church","GOA","Pocatello","ID",42.8713,-112.4455],
+[107,"St. Nicholas Orthodox Church","OCA","Twin Falls","ID",42.5630,-114.4609],
+/* IL */[108,"Annunciation Greek Orthodox Cathedral","GOA","Chicago","IL",41.8781,-87.6298],
+[109,"Holy Trinity Greek Orthodox Church","GOA","Chicago","IL",41.8900,-87.6400],
+[110,"St. Nicholas Albanian Orthodox Church","Albanian","Chicago","IL",41.9300,-87.7400],
+[111,"St. George Orthodox Church","Antiochian","Chicago","IL",41.8500,-87.7000],
+[112,"Holy Virgin Protection Cathedral","ROCOR","Des Plaines","IL",42.0334,-87.8873],
+[113,"St. Nectarios Greek Orthodox Church","GOA","Palatine","IL",42.1103,-88.0342],
+[114,"St. Andrew Greek Orthodox Church","GOA","Chicago","IL",41.9500,-87.6800],
+[115,"St. Nicholas Greek Orthodox Church","GOA","Oak Lawn","IL",41.7198,-87.7484],
+[116,"St. John the Baptist Greek Orthodox Church","GOA","Des Plaines","IL",42.0400,-87.8900],
+[117,"St. Nicholas Orthodox Church","OCA","Rockford","IL",42.2711,-89.0940],
+[118,"Holy Ascension Orthodox Church","OCA","Springfield","IL",39.7817,-89.6501],
+[119,"All Saints Greek Orthodox Church","GOA","Peoria","IL",40.6936,-89.5890],
+[120,"Holy Cross Orthodox Church","OCA","Champaign","IL",40.1164,-88.2434],
+[121,"St. George Serbian Orthodox Church","Serbian","Joliet","IL",41.5250,-88.0817],
+/* IN */[122,"Holy Trinity Greek Orthodox Cathedral","GOA","Indianapolis","IN",39.7684,-86.1581],
+[123,"St. George Orthodox Church","Antiochian","Indianapolis","IN",39.8000,-86.1500],
+[124,"St. Nicholas Orthodox Church","OCA","Fort Wayne","IN",41.0793,-85.1394],
+[125,"St. Andrew Greek Orthodox Church","GOA","South Bend","IN",41.6764,-86.2520],
+[126,"SS. Constantine & Helen Greek Orthodox Cathedral","GOA","Merrillville","IN",41.4828,-87.3326],
+[127,"Holy Trinity Greek Orthodox Church","GOA","Evansville","IN",37.9716,-87.5711],
+[128,"St. Nicholas Orthodox Church","OCA","Bloomington","IN",39.1653,-86.5264],
+/* IA */[129,"St. George Greek Orthodox Church","GOA","Des Moines","IA",41.5868,-93.6250],
+[130,"St. John the Baptist Greek Orthodox Church","GOA","Cedar Rapids","IA",41.9779,-91.6656],
+[131,"St. George Greek Orthodox Church","GOA","Davenport","IA",41.5236,-90.5776],
+[132,"Holy Trinity Greek Orthodox Church","GOA","Sioux City","IA",42.4963,-96.4049],
+/* KS */[133,"St. George Greek Orthodox Church","GOA","Wichita","KS",37.6872,-97.3301],
+[134,"Annunciation Greek Orthodox Church","GOA","Kansas City","KS",39.1142,-94.6275],
+[135,"St. Nicholas Orthodox Church","OCA","Lawrence","KS",38.9717,-95.2353],
+/* KY */[136,"Assumption Greek Orthodox Church","GOA","Louisville","KY",38.2527,-85.7585],
+[137,"Holy Trinity Greek Orthodox Church","GOA","Lexington","KY",38.0406,-84.5037],
+[138,"Mother of God Greek Orthodox Church","GOA","Covington","KY",39.0837,-84.5086],
+[139,"Holy Spirit Orthodox Church","OCA","Bowling Green","KY",36.9685,-86.4808],
+/* LA */[140,"Holy Trinity Greek Orthodox Cathedral","GOA","New Orleans","LA",29.9511,-90.0715],
+[141,"St. George Greek Orthodox Church","GOA","Baton Rouge","LA",30.4515,-91.1871],
+[142,"Holy Cross Greek Orthodox Church","GOA","Lafayette","LA",30.2241,-92.0198],
+[143,"St. George Greek Orthodox Church","GOA","Shreveport","LA",32.5252,-93.7502],
+/* ME */[144,"Holy Trinity Greek Orthodox Church","GOA","Portland","ME",43.6591,-70.2568],
+[145,"St. George Greek Orthodox Church","GOA","Bangor","ME",44.8016,-68.7712],
+[146,"Sts. Peter & Paul Orthodox Church","OCA","Lewiston","ME",44.1004,-70.2148],
+/* MD */[147,"Annunciation Greek Orthodox Cathedral","GOA","Baltimore","MD",39.2904,-76.6122],
+[148,"St. Nicholas Greek Orthodox Church","GOA","Baltimore","MD",39.3100,-76.5900],
+[149,"St. Andrew Ukrainian Orthodox Cathedral","UOCUSA","Silver Spring","MD",38.9907,-77.0261],
+[150,"Ss. Constantine & Helen Greek Orthodox Church","GOA","Annapolis","MD",38.9784,-76.4922],
+/* MA */[151,"Annunciation Greek Orthodox Cathedral","GOA","Boston","MA",42.3601,-71.0589],
+[152,"St. George Albanian Orthodox Cathedral","Albanian","Boston","MA",42.3400,-71.0700],
+[153,"Holy Trinity Orthodox Cathedral","OCA","Boston","MA",42.3400,-71.0900],
+[154,"Sts. Constantine & Helen Greek Orthodox Church","GOA","Cambridge","MA",42.3736,-71.1097],
+[155,"St. Spyridon Greek Orthodox Cathedral","GOA","Worcester","MA",42.2626,-71.8023],
+[156,"St. George Greek Orthodox Cathedral","GOA","Springfield","MA",42.1015,-72.5898],
+[157,"Holy Trinity Greek Orthodox Church","GOA","Lowell","MA",42.6334,-71.3162],
+[158,"St. Demetrios Greek Orthodox Church","GOA","Weston","MA",42.3584,-71.3031],
+/* MI */[159,"Annunciation Greek Orthodox Cathedral","GOA","Detroit","MI",42.3314,-83.0458],
+[160,"Sts. Constantine & Helen Greek Orthodox Church","GOA","Detroit","MI",42.3500,-83.1000],
+[161,"Holy Trinity Greek Orthodox Church","GOA","Grand Rapids","MI",42.9634,-85.6681],
+[162,"Holy Trinity Greek Orthodox Church","GOA","Lansing","MI",42.7325,-84.5555],
+[163,"St. Nicholas Greek Orthodox Church","GOA","Ann Arbor","MI",42.2808,-83.7430],
+[164,"Assumption Greek Orthodox Church","GOA","Flint","MI",43.0125,-83.6875],
+[165,"St. Catherine Greek Orthodox Church","GOA","Kalamazoo","MI",42.2917,-85.5872],
+[166,"St. Demetrios Greek Orthodox Church","GOA","Saginaw","MI",43.4195,-83.9508],
+[167,"Archangel Gabriel Greek Orthodox Church","GOA","Traverse City","MI",44.7631,-85.6206],
+/* MN */[168,"St. Mary's Greek Orthodox Church","GOA","Minneapolis","MN",44.9778,-93.2650],
+[169,"St. George Greek Orthodox Church","GOA","St. Paul","MN",44.9537,-93.0900],
+[170,"Sts. Peter & Paul Orthodox Church","OCA","Duluth","MN",46.7867,-92.1005],
+[171,"Sts. Kosmas & Damianos Greek Orthodox Church","GOA","Rochester","MN",44.0121,-92.4802],
+[172,"St. Mary's Orthodox Cathedral","OCA","Minneapolis","MN",44.9600,-93.2600],
+/* MS */[173,"Holy Trinity-St. John the Theologian Greek Orthodox Church","GOA","Jackson","MS",32.2988,-90.1848],
+[174,"Holy Trinity Greek Orthodox Church","GOA","Biloxi","MS",30.3960,-88.8853],
+[175,"St. John Orthodox Church","Antiochian","Hattiesburg","MS",31.3271,-89.2903],
+/* MO */[176,"Assumption Greek Orthodox Church","GOA","St. Louis","MO",38.6270,-90.1994],
+[177,"St. Nicholas Greek Orthodox Church","GOA","St. Louis","MO",38.6500,-90.3300],
+[178,"Annunciation Greek Orthodox Church","GOA","Kansas City","MO",39.0997,-94.5786],
+[179,"St. Thomas the Apostle Orthodox Church","OCA","Springfield","MO",37.2090,-93.2923],
+[180,"St. Luke Orthodox Church","OCA","Columbia","MO",38.9517,-92.3341],
+/* MT */[181,"St. Anthony Greek Orthodox Church","GOA","Billings","MT",45.7833,-108.5007],
+[182,"Annunciation Greek Orthodox Church","GOA","Missoula","MT",46.8721,-113.9940],
+[183,"Ss. Constantine & Helen Greek Orthodox Church","GOA","Great Falls","MT",47.5002,-111.3008],
+[184,"St. James Orthodox Church","OCA","Bozeman","MT",45.6770,-111.0429],
+[185,"St. Nicholas Orthodox Church","OCA","Kalispell","MT",48.1958,-114.3124],
+/* NE */[186,"St. Mary's Greek Orthodox Church","GOA","Omaha","NE",41.2565,-95.9345],
+[187,"Annunciation Greek Orthodox Church","GOA","Lincoln","NE",40.8136,-96.7026],
+[188,"St. Nicholas Orthodox Church","OCA","Grand Island","NE",40.9264,-98.3420],
+/* NV */[189,"St. John the Baptist Greek Orthodox Church","GOA","Las Vegas","NV",36.1699,-115.1398],
+[190,"Assumption Greek Orthodox Church","GOA","Las Vegas","NV",36.1500,-115.2000],
+[191,"St. Anthony Greek Orthodox Church","GOA","Henderson","NV",36.0395,-114.9817],
+[192,"St. Anthony Greek Orthodox Church","GOA","Reno","NV",39.5296,-119.8138],
+/* NH */[193,"Assumption Greek Orthodox Church","GOA","Manchester","NH",42.9956,-71.4548],
+[194,"St. Philip Greek Orthodox Church","GOA","Nashua","NH",42.7654,-71.4676],
+/* NJ */[195,"St. Demetrios Greek Orthodox Church","GOA","Perth Amboy","NJ",40.5068,-74.2654],
+[196,"St. George Greek Orthodox Church","GOA","Clifton","NJ",40.8584,-74.1638],
+[197,"St. Nicholas Greek Orthodox Church","GOA","Newark","NJ",40.7357,-74.1724],
+[198,"Sts. Peter & Paul Orthodox Church","OCA","Passaic","NJ",40.8568,-74.1285],
+[199,"Holy Trinity Greek Orthodox Church","GOA","Trenton","NJ",40.2171,-74.7429],
+[200,"St. George Serbian Orthodox Church","Serbian","Elizabeth","NJ",40.6640,-74.2107],
+[201,"Christ the Saviour Orthodox Church","OCA","Paramus","NJ",40.9445,-74.0754],
+[202,"St. Anthony Greek Orthodox Church","GOA","Vineland","NJ",39.4862,-75.0260],
+[203,"St. Nicholas Greek Orthodox Church","GOA","Atlantic City","NJ",39.3643,-74.4229],
+/* NM */[204,"St. George Greek Orthodox Church","GOA","Albuquerque","NM",35.0844,-106.6504],
+[205,"St. Elias the Prophet Greek Orthodox Church","GOA","Santa Fe","NM",35.6870,-105.9378],
+[206,"St. Andrew Greek Orthodox Church","GOA","Las Cruces","NM",32.3199,-106.7637],
+[207,"St. John the Baptist Greek Orthodox Church","GOA","Farmington","NM",36.7281,-108.2058],
+/* NY */[208,"Holy Trinity Greek Orthodox Cathedral","GOA","New York","NY",40.7736,-73.9566],
+[209,"St. Nicholas Russian Orthodox Cathedral","ROCOR","New York","NY",40.7695,-73.9540],
+[210,"St. Vladimir Orthodox Church","UOCUSA","New York","NY",40.7300,-73.9900],
+[211,"Sts. Constantine & Helen Greek Orthodox Cathedral","GOA","Brooklyn","NY",40.6750,-73.9450],
+[212,"St. Nicholas Antiochian Orthodox Cathedral","Antiochian","Brooklyn","NY",40.6860,-73.9850],
+[213,"St. Demetrios Greek Orthodox Cathedral","GOA","Astoria","NY",40.7660,-73.9230],
+[214,"St. Markella Greek Orthodox Church","GOA","Astoria","NY",40.7800,-73.9100],
+[215,"Transfiguration of Christ Greek Orthodox Church","GOA","Corona","NY",40.7450,-73.8600],
+[216,"St. Nicholas Greek Orthodox Church","GOA","Flushing","NY",40.7700,-73.8300],
+[217,"St. Paraskevi Greek Orthodox Church","GOA","Greenlawn","NY",40.8600,-73.3600],
+[218,"St. Paul Greek Orthodox Cathedral","GOA","Hempstead","NY",40.7000,-73.6200],
+[219,"Holy Trinity Greek Orthodox Church","GOA","New Rochelle","NY",40.9100,-73.7800],
+[220,"Holy Virgin Protection Russian Orthodox Church","ROCOR","Nyack","NY",41.0900,-73.9200],
+[221,"Holy Trinity Orthodox Church","OCA","Yonkers","NY",40.9400,-73.8900],
+[222,"St. Nicholas Orthodox Church","OCA","Saratoga Springs","NY",43.0800,-73.7800],
+[223,"St. Sophia Greek Orthodox Church","GOA","Albany","NY",42.6526,-73.7562],
+[224,"St. Michael's Orthodox Church","OCA","Binghamton","NY",42.0987,-75.9108],
+[225,"St. Sophia Greek Orthodox Church","GOA","Syracuse","NY",43.0481,-76.1474],
+[226,"Holy Trinity Greek Orthodox Church","GOA","Rochester","NY",43.1566,-77.6088],
+[227,"Annunciation Greek Orthodox Church","GOA","Buffalo","NY",42.8864,-78.8784],
+[228,"St. John the Baptist Greek Orthodox Church","GOA","Utica","NY",43.1009,-75.2327],
+/* NC */[229,"Holy Trinity Greek Orthodox Cathedral","GOA","Charlotte","NC",35.2271,-80.8431],
+[230,"St. Nektarios Greek Orthodox Church","GOA","Charlotte","NC",35.1500,-80.8000],
+[231,"Holy Trinity Greek Orthodox Church","GOA","Raleigh","NC",35.7796,-78.6382],
+[232,"St. Barbara Greek Orthodox Church","GOA","Durham","NC",35.9940,-78.8986],
+[233,"Annunciation Greek Orthodox Church","GOA","Winston-Salem","NC",36.0999,-80.2442],
+[234,"St. George Greek Orthodox Church","GOA","Greensboro","NC",36.0726,-79.7920],
+[235,"Holy Trinity Greek Orthodox Church","GOA","Asheville","NC",35.5951,-82.5515],
+[236,"St. Nicholas Greek Orthodox Church","GOA","Wilmington","NC",34.2257,-77.9447],
+/* ND */[237,"Holy Trinity Greek Orthodox Church","GOA","Fargo","ND",46.8772,-96.7898],
+[238,"St. George Greek Orthodox Church","GOA","Bismarck","ND",46.8083,-100.7837],
+/* OH */[239,"Annunciation Greek Orthodox Church","GOA","Cleveland","OH",41.4993,-81.6944],
+[240,"St. Sava Serbian Orthodox Cathedral","Serbian","Cleveland","OH",41.4000,-81.7300],
+[241,"Saints Constantine and Helen Greek Orthodox Cathedral","GOA","Cleveland Heights","OH",41.5200,-81.5500],
+[242,"Annunciation Greek Orthodox Cathedral","GOA","Columbus","OH",39.9612,-82.9988],
+[243,"St. Nicholas Greek Orthodox Church","GOA","Columbus","OH",39.9900,-83.0300],
+[244,"Holy Trinity-St. Nicholas Greek Orthodox Church","GOA","Cincinnati","OH",39.1031,-84.5120],
+[245,"Assumption Greek Orthodox Church","GOA","Dayton","OH",39.7589,-84.1916],
+[246,"Holy Trinity Greek Orthodox Church","GOA","Toledo","OH",41.6528,-83.5379],
+[247,"Annunciation Greek Orthodox Church","GOA","Akron","OH",41.0814,-81.5190],
+[248,"Holy Trinity Greek Orthodox Church","GOA","Canton","OH",40.7989,-81.3784],
+[249,"Archangel Michael Greek Orthodox Church","GOA","Campbell","OH",41.0800,-80.5900],
+/* OK */[250,"St. George Greek Orthodox Church","GOA","Oklahoma City","OK",35.4676,-97.5164],
+[251,"Holy Trinity Greek Orthodox Church","GOA","Tulsa","OK",36.1540,-95.9928],
+[252,"St. John the Baptist Greek Orthodox Church","GOA","Norman","OK",35.2226,-97.4395],
+[253,"St. Elias Orthodox Church","Antiochian","Lawton","OK",34.6036,-98.3959],
+/* OR */[254,"Holy Trinity Greek Orthodox Cathedral","GOA","Portland","OR",45.5152,-122.6784],
+[255,"St. Nicholas Orthodox Church","OCA","Portland","OR",45.5300,-122.6500],
+[256,"Holy Resurrection Orthodox Church","OCA","Salem","OR",44.9429,-123.0351],
+[257,"St. George Greek Orthodox Church","GOA","Eugene","OR",44.0521,-123.0868],
+[258,"St. John the Wonderworker Serbian Orthodox Church","Serbian","Eugene","OR",44.0600,-123.1100],
+[259,"St. Jacob of Alaska Mission","OCA","Bend","OR",44.0582,-121.3153],
+[260,"St. George Greek Orthodox Church","GOA","Medford","OR",42.3265,-122.8756],
+[261,"Holy Cross Orthodox Church","GOA","Roseburg","OR",43.2165,-123.3417],
+[262,"St. Anne Orthodox Church","OCA","Corvallis","OR",44.5646,-123.2620],
+[263,"St. Brendan the Navigator Mission","OCA","Astoria","OR",46.1879,-123.8313],
+[264,"Dormition of the Theotokos Serbian Mission","Serbian","The Dalles","OR",45.5946,-121.1787],
+/* PA */[265,"Annunciation Greek Orthodox Cathedral","GOA","Philadelphia","PA",39.9600,-75.1700],
+[266,"St. George Greek Orthodox Cathedral","GOA","Philadelphia","PA",39.9500,-75.1500],
+[267,"St. Nicholas Orthodox Church","OCA","Philadelphia","PA",39.9400,-75.1300],
+[268,"Ss. Peter and Paul Orthodox Church","OCA","Philadelphia","PA",39.9900,-75.1600],
+[269,"St. Mary's Assumption Albanian Orthodox Church","Albanian","Philadelphia","PA",39.9500,-75.1900],
+[270,"St. Nicholas Greek Orthodox Cathedral","GOA","Pittsburgh","PA",40.4406,-79.9959],
+[271,"Holy Trinity Greek Orthodox Church","GOA","Pittsburgh","PA",40.4300,-79.9300],
+[272,"St. Alexander Nevsky Orthodox Cathedral","OCA","Pittsburgh","PA",40.4600,-79.9400],
+[273,"Christ the Saviour Cathedral","ACROD","Johnstown","PA",40.3267,-78.9220],
+[274,"St. John the Baptist Orthodox Church","ACROD","Nanticoke","PA",41.2054,-75.9969],
+[275,"Holy Trinity Greek Orthodox Church","GOA","Harrisburg","PA",40.2732,-76.8867],
+[276,"St. Nicholas Greek Orthodox Church","GOA","Allentown","PA",40.6023,-75.4714],
+[277,"St. Nicholas Orthodox Church","OCA","Scranton","PA",41.4090,-75.6624],
+[278,"Holy Trinity Greek Orthodox Church","GOA","Erie","PA",42.1292,-80.0851],
+[279,"Sts. Constantine & Helen Greek Orthodox Church","GOA","Reading","PA",40.3356,-75.9269],
+[280,"Annunciation Greek Orthodox Church","GOA","Lancaster","PA",40.0379,-76.3055],
+/* RI */[281,"Annunciation Greek Orthodox Church","GOA","Cranston","RI",41.7798,-71.4373],
+[282,"St. Demetrios Greek Orthodox Church","GOA","Providence","RI",41.8240,-71.4128],
+/* SC */[283,"Holy Trinity Greek Orthodox Church","GOA","Charleston","SC",32.7765,-79.9311],
+[284,"Holy Trinity Greek Orthodox Cathedral","GOA","Columbia","SC",34.0007,-81.0348],
+[285,"St. George Greek Orthodox Cathedral","GOA","Greenville","SC",34.8526,-82.3940],
+[286,"St. Nicholas Greek Orthodox Church","GOA","Spartanburg","SC",34.9496,-81.9320],
+/* SD */[287,"Holy Trinity Greek Orthodox Church","GOA","Sioux Falls","SD",43.5460,-96.7311],
+[288,"St. George Greek Orthodox Church","GOA","Rapid City","SD",44.0805,-103.2310],
+/* TN */[289,"Holy Trinity Greek Orthodox Church","GOA","Nashville","TN",36.1627,-86.7816],
+[290,"St. Demetrios Greek Orthodox Church","GOA","Memphis","TN",35.1495,-90.0490],
+[291,"St. George Greek Orthodox Church","GOA","Knoxville","TN",35.9606,-83.9207],
+[292,"Annunciation Greek Orthodox Church","GOA","Chattanooga","TN",35.0456,-85.3097],
+[293,"St. John the Baptist Orthodox Church","OCA","Johnson City","TN",36.3134,-82.3535],
+/* TX */[294,"Annunciation Greek Orthodox Cathedral","GOA","Houston","TX",29.7604,-95.3698],
+[295,"St. Basil the Great Greek Orthodox Church","GOA","Houston","TX",29.7400,-95.4100],
+[296,"St. Nicholas Greek Orthodox Church","GOA","Houston","TX",29.7900,-95.4600],
+[297,"Holy Trinity Greek Orthodox Church","GOA","Dallas","TX",32.7767,-96.7970],
+[298,"St. Demetrios Greek Orthodox Church","GOA","Fort Worth","TX",32.7555,-97.3308],
+[299,"St. John the Baptist Greek Orthodox Church","GOA","Euless","TX",32.8371,-97.0820],
+[300,"Transfiguration Greek Orthodox Church","GOA","Austin","TX",30.2672,-97.7431],
+[301,"St. Elias Orthodox Church","Antiochian","Austin","TX",30.3000,-97.7500],
+[302,"St. Anthony Greek Orthodox Church","GOA","San Antonio","TX",29.4241,-98.4936],
+[303,"St. Sophia Greek Orthodox Church","GOA","San Antonio","TX",29.5000,-98.5500],
+[304,"St. George Greek Orthodox Church","GOA","El Paso","TX",31.7619,-106.4850],
+[305,"St. Nicholas Greek Orthodox Church","GOA","Corpus Christi","TX",27.8006,-97.3964],
+[306,"St. George Greek Orthodox Church","GOA","Laredo","TX",27.5306,-99.4803],
+[307,"St. George Greek Orthodox Church","GOA","Pharr","TX",26.1948,-98.1836],
+[308,"St. Nicholas Greek Orthodox Church","GOA","Brownsville","TX",25.9017,-97.4975],
+[309,"St. Andrew Greek Orthodox Church","GOA","Lubbock","TX",33.5779,-101.8552],
+[310,"St. George Greek Orthodox Church","GOA","Amarillo","TX",35.2220,-101.8313],
+[311,"Holy Cross Greek Orthodox Church","GOA","Wichita Falls","TX",33.9137,-98.4934],
+[312,"St. Luke Greek Orthodox Church","GOA","Abilene","TX",32.4487,-99.7331],
+[313,"St. Michael Greek Orthodox Church","GOA","Beaumont","TX",30.0802,-94.1266],
+[314,"St. Nicholas Greek Orthodox Church","GOA","Waco","TX",31.5493,-97.1467],
+[315,"St. John the Baptist Greek Orthodox Church","GOA","Tyler","TX",32.3513,-95.3011],
+[316,"St. Nicholas Greek Orthodox Church","GOA","Midland","TX",31.9973,-102.0779],
+/* UT */[317,"Holy Trinity Greek Orthodox Cathedral","GOA","Salt Lake City","UT",40.7608,-111.8910],
+[318,"Sts. Peter & Paul Orthodox Church","OCA","Salt Lake City","UT",40.7000,-111.8900],
+[319,"Transfiguration Greek Orthodox Church","GOA","Ogden","UT",41.2230,-111.9738],
+[320,"St. George Greek Orthodox Church","GOA","St. George","UT",37.0965,-113.5684],
+/* VT */[321,"Annunciation Greek Orthodox Church","GOA","Burlington","VT",44.4759,-73.2121],
+[322,"St. Nicholas Orthodox Church","OCA","Rutland","VT",43.6106,-72.9726],
+/* VA */[323,"Sts. Constantine & Helen Greek Orthodox Cathedral","GOA","Richmond","VA",37.5407,-77.4360],
+[324,"Annunciation Greek Orthodox Cathedral","GOA","Norfolk","VA",36.8508,-76.2859],
+[325,"St. Nicholas Greek Orthodox Church","GOA","Virginia Beach","VA",36.8529,-75.9780],
+[326,"Holy Trinity Greek Orthodox Church","GOA","Roanoke","VA",37.2710,-79.9414],
+[327,"St. Katherine Greek Orthodox Church","GOA","Falls Church","VA",38.8823,-77.1711],
+/* WA */[328,"St. Demetrios Greek Orthodox Church","GOA","Seattle","WA",47.6384,-122.3077],
+[329,"St. Spiridon Orthodox Cathedral","OCA","Seattle","WA",47.6221,-122.3301],
+[330,"St. Nicholas Russian Orthodox Cathedral","ROCOR","Seattle","WA",47.6170,-122.3152],
+[331,"Holy Apostles Greek Orthodox Church","GOA","Shoreline","WA",47.7699,-122.3407],
+[332,"Holy Cross Greek Orthodox Church","GOA","Bellevue","WA",47.6104,-122.2007],
+[333,"St. Thomas Orthodox Church","Antiochian","Snohomish","WA",47.9129,-122.0985],
+[334,"St. Nicholas Greek Orthodox Church","GOA","Tacoma","WA",47.2529,-122.4443],
+[335,"Holy Trinity Greek Orthodox Church","GOA","Spokane","WA",47.6588,-117.4260],
+[336,"St. Nicholas Orthodox Church","OCA","Spokane","WA",47.6700,-117.4100],
+[337,"St. John the Baptist Greek Orthodox Church","GOA","Vancouver","WA",45.6387,-122.6615],
+[338,"St. Nicholas Orthodox Church","OCA","Olympia","WA",47.0379,-122.9007],
+[339,"St. Sophia Greek Orthodox Church","GOA","Bellingham","WA",48.7491,-122.4781],
+[340,"St. Joseph Greek Orthodox Church","GOA","Yakima","WA",46.6021,-120.5059],
+[341,"St. George Greek Orthodox Church","GOA","Wenatchee","WA",47.4235,-120.3103],
+[342,"St. Nectarios Mission","GOA","Pasco","WA",46.2396,-119.1006],
+/* WV */[343,"St. George Greek Orthodox Church","GOA","Charleston","WV",38.3498,-81.6326],
+[344,"St. George Greek Orthodox Cathedral","GOA","Huntington","WV",38.4192,-82.4452],
+/* WI */[345,"Annunciation Greek Orthodox Church","GOA","Milwaukee","WI",43.0389,-87.9065],
+[346,"Assumption Greek Orthodox Church","GOA","Madison","WI",43.0731,-89.4012],
+[347,"St. Nicholas Greek Orthodox Church","GOA","Green Bay","WI",44.5133,-88.0158],
+/* WY */[348,"Holy Trinity Greek Orthodox Church","GOA","Cheyenne","WY",41.1400,-104.8202],
+[349,"St. Anthony Greek Orthodox Church","GOA","Casper","WY",42.8666,-106.3131]
+];
+
 const JUR={
   'GOA':{full:'Greek Orthodox Archdiocese of America',color:'#4dabf7'},
   'OCA':{full:'Orthodox Church in America',color:'#ffd43b'},
@@ -341,166 +565,215 @@ const JUR={
   'Romanian':{full:'Romanian Orthodox Metropolia',color:'#f783ac'},
   'Bulgarian':{full:'Bulgarian Eastern Orthodox Diocese',color:'#a9e34b'},
   'Moscow Patriarchate':{full:'Moscow Patriarchal Parishes',color:'#e599f7'},
-  'Georgian':{full:'Georgian Apostolic Orthodox Church in NA',color:'#adb5bd'}
+  'Georgian':{full:'Georgian Apostolic Orthodox Church in NA',color:'#adb5bd'},
+  'Albanian':{full:'Albanian Orthodox Diocese of America',color:'#69db7c'},
+  'ACROD':{full:'American Carpatho-Russian Orthodox Diocese',color:'#ffc078'}
 };
 function colorOf(j){ return (JUR[j]&&JUR[j].color)||'#94a3b8'; }
 function fullName(j){ return (JUR[j]&&JUR[j].full)||j; }
 
-/* Hand-built corridor graph: waypoints on the major highway network.
-   NOT OSM. See notes - swap for a real extract and nothing else changes. */
+/* Hand-built corridor graph: waypoints on the Interstate / US-highway
+   backbone of the lower 48. NOT OSM — see header. */
 const PLACES = {
-/* --- Washington --- */
-bellingham:[48.7491,-122.4781], mtvernon:[48.4212,-122.3340], everett:[47.9790,-122.2021],
-lynnwood:[47.8209,-122.3151], edmonds:[47.8110,-122.3770], mukilteo:[47.9490,-122.3040],
-seattle:[47.6062,-122.3321], seatf:[47.6025,-122.3405], fauntleroy:[47.5230,-122.3940],
-tacoma:[47.2529,-122.4443], gigharbor:[47.3293,-122.5801], bremerton:[47.5673,-122.6326],
-poulsbo:[47.7359,-122.6468], kingston:[47.7987,-122.4987], clinton:[47.9754,-122.3835],
-coupeville:[48.2190,-122.6870], porttownsend:[48.1170,-122.7604], portangeles:[48.1181,-123.4307],
-sequim:[48.0795,-123.1018], forks:[47.9504,-124.3855], aberdeen:[46.9754,-123.8157],
-hoquiam:[46.9809,-123.8893], olympia:[47.0379,-122.9007], shelton:[47.2151,-123.1008],
-centralia:[46.7162,-122.9543], chehalis:[46.6620,-122.9640], longview:[46.1468,-122.9084],
-vancouver:[45.6387,-122.6615], yakima:[46.6021,-120.5059], toppenish:[46.3774,-120.3087],
-kennewick:[46.2112,-119.1372], ellensburg:[46.9965,-120.5478], cleelum:[47.1954,-120.9392],
-snoqualmie:[47.4243,-121.4131], northbend:[47.4957,-121.7868], monroe:[47.8554,-121.9709],
-skykomish:[47.7093,-121.3562], leavenworth:[47.5962,-120.6615], wenatchee:[47.4235,-120.3103],
-ephrata:[47.3176,-119.5532], moseslake:[47.1301,-119.2781], ritzville:[47.0893,-118.3797],
-spokane:[47.6588,-117.4260], colville:[48.5466,-117.9055], newportwa:[48.1799,-117.0435],
-republic:[48.6482,-118.7342], tonasket:[48.7052,-119.4392], okanogan:[48.3610,-119.5839],
-twisp:[48.3635,-120.1203], winthrop:[48.4782,-120.1862], marblemount:[48.5290,-121.4370],
-naches:[46.7290,-120.6990], morton:[46.5582,-122.2768], whitepass:[46.6387,-121.3906],
-astoria:[46.1879,-123.8313], megler:[46.2530,-123.8800], vashon:[47.3987,-122.4660],
-tahlequah:[47.3360,-122.4970], pointdefiance:[47.3060,-122.5290], bainbridge:[47.6223,-122.5210],
-goldendale:[45.8225,-120.8255],
-/* --- Oregon --- */
-portland:[45.5152,-122.6784], hoodriver:[45.7054,-121.5215], thedalles:[45.5946,-121.1787],
-pendleton:[45.6721,-118.7886], lagrande:[45.3246,-118.0877], bakercity:[44.7749,-117.8344],
-ontario:[44.0266,-116.9629], vale:[43.9821,-117.2385], burns:[43.5863,-119.0541],
-hines:[43.5646,-119.0810], crane:[43.4154,-118.5783], princeton:[43.2465,-118.4852],
-burnsjunction:[42.7737,-117.8452], johnday:[44.4157,-118.9530], mitchell:[44.5671,-120.1533],
-prineville:[44.3001,-120.8345], madras:[44.6335,-121.1295], bend:[44.0582,-121.3153],
-redmond:[44.2726,-121.1739], sisters:[44.2909,-121.5492], santiampass:[44.4168,-121.8558],
-sweethome:[44.3976,-122.7362], albany:[44.6365,-123.1059], corvallis:[44.5646,-123.2620],
-salem:[44.9429,-123.0351], eugene:[44.0521,-123.0868], oakridge:[43.7468,-122.4612],
-crescentlake:[43.5096,-121.9700], chemult:[43.2226,-121.7847], lapine:[43.6701,-121.5039],
-klamathfalls:[42.2249,-121.7817], bly:[42.3957,-120.9960], lakeview:[42.1888,-120.3458],
-paisley:[42.6935,-120.5464], roseburg:[43.2165,-123.3417], grantspass:[42.4390,-123.3284],
-medford:[42.3265,-122.8756], newportor:[44.6368,-124.0534], toledo:[44.6215,-123.9387],
-seaside:[45.9934,-123.9226], tillamook:[45.4562,-123.8440], lincolncity:[44.9582,-124.0173],
-florence:[43.9826,-124.0998], reedsport:[43.7023,-124.0962], coosbay:[43.3665,-124.2179],
-bandon:[43.1190,-124.4084], portorford:[42.7457,-124.4973], goldbeach:[42.4073,-124.4218],
-brookings:[42.0526,-124.2839], sandy:[45.3973,-122.2612], govtcamp:[45.3040,-121.7565],
-brothers:[43.8137,-120.5947],
-/* --- Idaho --- */
-boise:[43.6150,-116.2023], nampa:[43.5407,-116.5635], marsing:[43.5463,-116.8135],
-payette:[44.0782,-116.9338], weiser:[44.2510,-116.9696], council:[44.7296,-116.4379],
-newmeadows:[44.9724,-116.2849], grangeville:[45.9260,-116.1224], lewiston:[46.4165,-117.0177],
-moscow:[46.7324,-117.0002], coeurdalene:[47.6777,-116.7805], sandpoint:[48.2766,-116.5535],
-bonnersferry:[48.6913,-116.3163], kellogg:[47.5383,-116.1193], stregis:[47.2983,-115.1013],
-mountainhome:[43.1329,-115.6912], twinfalls:[42.5630,-114.4609], burley:[42.5357,-113.7928],
-pocatello:[42.8713,-112.4455], idahofalls:[43.4917,-112.0339], arco:[43.6366,-113.3003],
-carey:[43.2666,-113.9459], shoshone:[42.9360,-114.4059], challis:[44.5046,-114.2317],
-salmon:[45.1757,-113.8950], snowville:[41.9655,-112.7094], jordanvalley:[42.9768,-117.0535],
-/* --- Montana --- */
-missoula:[46.8721,-113.9940], deerlodge:[46.3958,-112.7298], butte:[46.0038,-112.5348],
-bozeman:[45.6770,-111.0429], helena:[46.5884,-112.0245], greatfalls:[47.5002,-111.3008],
-dillon:[45.2163,-112.6375], kalispell:[48.1958,-114.3124], libby:[48.3883,-115.5560],
-hamilton:[46.2469,-114.1595], threeforks:[45.8924,-111.5522],
-/* --- Nevada --- */
-reno:[39.5296,-119.8138], carsoncity:[39.1638,-119.7674], fernley:[39.6080,-119.2507],
-fallon:[39.4749,-118.7774], lovelock:[40.1794,-118.4735], winnemucca:[40.9729,-117.7357],
-battlemountain:[40.6421,-116.9340], elko:[40.8324,-115.7631], wells:[41.1116,-114.9645],
-ely:[39.2474,-114.8886], eurekanv:[39.5121,-115.9605], austin:[39.4930,-117.0694],
-hawthorne:[38.5246,-118.6240], tonopah:[38.0672,-117.2300], beatty:[36.9084,-116.7597],
-mcdermitt:[41.9988,-117.7180], jackpot:[41.9832,-114.6703], wendover:[40.7372,-114.0308],
-pioche:[37.9277,-114.4517],
-/* --- Utah --- */
-ogden:[41.2230,-111.9738], slc:[40.7608,-111.8910], tremonton:[41.7119,-112.1655],
-brigham:[41.5102,-112.0155],
-/* --- California --- */
-yreka:[41.7354,-122.6345], weed:[41.4226,-122.3861], redding:[40.5865,-122.3917],
-redbluff:[40.1785,-122.2358], chico:[39.7285,-121.8375], yubacity:[39.1404,-121.6169],
-sacramento:[38.5816,-121.4944], stockton:[37.9577,-121.2908], modesto:[37.6391,-120.9969],
-merced:[37.3022,-120.4830], fresno:[36.7378,-119.7871], williams:[39.1546,-122.1494],
-susanville:[40.4163,-120.6530], alturas:[41.4874,-120.5425], burney:[40.8827,-121.6606],
-doyle:[40.0277,-120.1041], truckee:[39.3280,-120.1833], auburn:[38.8966,-121.0769],
-southlaketahoe:[38.9399,-119.9774], jacksonca:[38.3488,-120.7741], oroville:[39.5138,-121.5564],
-quincy:[39.9368,-120.9472], portola:[39.8105,-120.4691], marysville:[39.1457,-121.5913],
-crescentcity:[41.7558,-124.2026], eurekaca:[40.8021,-124.1637], fortuna:[40.5982,-124.1573],
-willits:[39.4096,-123.3550], ukiah:[39.1502,-123.2078], cloverdale:[38.8055,-123.0172],
-santarosa:[38.4404,-122.7141], novato:[38.1074,-122.5697], sanrafael:[37.9735,-122.5311],
-sf:[37.7749,-122.4194], oakland:[37.8044,-122.2712], sanjose:[37.3382,-121.8863],
-santacruz:[36.9741,-122.0308], gilroy:[37.0058,-121.5683], halfmoonbay:[37.4636,-122.4286],
-dorris:[41.9668,-121.9186]
+/* Pacific NW / Rockies */
+seattle:[47.6062,-122.3321], tacoma:[47.2529,-122.4443], olympia:[47.0379,-122.9007],
+centralia:[46.7162,-122.9543], portland:[45.5152,-122.6784], salem:[44.9429,-123.0351],
+eugene:[44.0521,-123.0868], grants_pass:[42.4390,-123.3284], roseburg:[43.2165,-123.3417],
+medford:[42.3265,-122.8756], redding:[40.5865,-122.3917], sacramento:[38.5816,-121.4944],
+stockton:[37.9577,-121.2908], modesto:[37.6391,-120.9969], fresno:[36.7378,-119.7871],
+bakersfield:[35.3733,-119.0187], los_angeles:[34.0522,-118.2437], san_diego:[32.7157,-117.1611],
+ellensburg:[46.9965,-120.5478], yakima:[46.6021,-120.5059], kennewick:[46.2112,-119.1372],
+spokane:[47.6588,-117.4260], coeur_dalene:[47.6777,-116.7805], missoula:[46.8721,-113.9940],
+butte:[46.0038,-112.5348], bozeman:[45.6770,-111.0429], billings:[45.7833,-108.5007],
+sheridan:[44.7972,-106.9562], rapid_city:[44.0805,-103.2310], mitchell:[43.7094,-98.0298],
+sioux_falls:[43.5460,-96.7311], albert_lea:[43.6480,-93.3683], rochester_mn:[44.0121,-92.4802],
+la_crosse:[43.8138,-91.2396], madison:[43.0731,-89.4012], milwaukee:[43.0389,-87.9065],
+green_bay:[44.5133,-88.0158], duluth:[46.7867,-92.1005], minneapolis:[44.9778,-93.2650],
+bismarck:[46.8083,-100.7837], fargo:[46.8772,-96.7898], grand_forks:[47.9253,-97.0329],
+williston:[48.1470,-103.6179], minot:[48.2330,-101.2923], havre:[48.5500,-109.6841],
+great_falls:[47.5002,-111.3008], helena:[46.5884,-112.0245], kalispell:[48.1958,-114.3124],
+salmon:[45.1757,-113.8950], challis:[44.5046,-114.2317], deer_lodge:[46.3958,-112.7298],
+wolf_point:[48.0900,-105.6400],
+/* West / Southwest */
+san_francisco:[37.7749,-122.4194], reno:[39.5296,-119.8138], elko:[40.8324,-115.7631],
+wells:[41.1116,-114.9645], salt_lake:[40.7608,-111.8910], rock_springs:[41.5875,-109.2029],
+cheyenne:[41.1400,-104.8202], north_platte:[41.1239,-100.7654], lincoln:[40.8136,-96.7026],
+omaha:[41.2565,-95.9345], des_moines:[41.5868,-93.6250], iowa_city:[41.6611,-91.5302],
+davenport:[41.5236,-90.5776], rockford:[42.2711,-89.0940], chicago:[41.8781,-87.6298],
+gary:[41.5934,-87.3464], joliet:[41.5250,-88.0817], toledo:[41.6528,-83.5379],
+cleveland:[41.4993,-81.6944], erie:[42.1292,-80.0851], buffalo:[42.8864,-78.8784],
+rochester_ny:[43.1566,-77.6088], syracuse:[43.0481,-76.1474], albany:[42.6526,-73.7562],
+springfield_ma:[42.1015,-72.5898], boston:[42.3601,-71.0589], hartford:[41.7658,-72.6851],
+new_haven:[41.3083,-72.9279], providence:[41.8240,-71.4128], nyc:[40.7128,-74.0060],
+newark:[40.7357,-74.1724], philadelphia:[39.9526,-75.1652], wilmington_de:[39.7391,-75.5398],
+baltimore:[39.2904,-76.6122], washington_dc:[38.9072,-77.0369], richmond:[37.5407,-77.4360],
+norfolk:[36.8508,-76.2859], raleigh:[35.7796,-78.6382], durham:[35.9940,-78.8986],
+greensboro:[36.0726,-79.7920], charlotte:[35.2271,-80.8431], wilmington_nc:[34.2257,-77.9447],
+asheville:[35.5951,-82.5515], knoxville:[35.9606,-83.9207], chattanooga:[35.0456,-85.3097],
+nashville:[36.1627,-86.7816], memphis:[35.1495,-90.0490], atlanta:[33.7490,-84.3880],
+birmingham:[33.5186,-86.8104], montgomery:[32.3668,-86.3000], mobile:[30.6954,-88.0399],
+jackson_ms:[32.2988,-90.1848], meridian:[32.3643,-88.7037], shreveport:[32.5252,-93.7502],
+little_rock:[34.7465,-92.2896], fort_smith:[35.3859,-94.3985], tulsa:[36.1540,-95.9928],
+oklahoma_city:[35.4676,-97.5164], amarillo:[35.2220,-101.8313], lubbock:[33.5779,-101.8552],
+midland:[31.9973,-102.0779], odessa:[31.8457,-102.3676], abilene:[32.4487,-99.7331],
+fort_worth:[32.7555,-97.3308], dallas:[32.7767,-96.7970], waco:[31.5493,-97.1467],
+austin:[30.2672,-97.7431], san_antonio:[29.4241,-98.4936], houston:[29.7604,-95.3698],
+corpus_christi:[27.8006,-97.3964], laredo:[27.5306,-99.4803], el_paso:[31.7619,-106.4850],
+las_cruces:[32.3199,-106.7637], albuquerque:[35.0844,-106.6504], santa_fe:[35.6870,-105.9378],
+flagstaff:[35.1983,-111.6513], kingman:[35.1894,-114.0530], barstow:[34.8958,-117.0173],
+palm_springs:[33.8303,-116.5453], phoenix:[33.4484,-112.0740], tucson:[32.2226,-110.9747],
+yuma:[32.6927,-114.6277], casa_grande:[32.8795,-111.7574], las_vegas:[36.1699,-115.1398],
+st_george:[37.0965,-113.5684], provo:[40.2338,-111.6585], ogden:[41.2230,-111.9738],
+pocatello:[42.8713,-112.4455], idaho_falls:[43.4917,-112.0339], boise:[43.6150,-116.2023],
+twin_falls:[42.5630,-114.4609], tremonton:[41.7119,-112.1655], grand_junction:[39.0639,-108.5506],
+green_river:[38.9955,-110.1618], salina_ut:[38.9577,-111.8596], julesburg:[40.9883,-102.2630],
+denver:[39.7392,-104.9903], colorado_springs:[38.8339,-104.8214], pueblo:[38.2544,-104.6091],
+hays:[38.8792,-99.3268], kansas_city:[39.0997,-94.5786], columbia_mo:[38.9517,-92.3341],
+st_louis:[38.6270,-90.1994], springfield_mo:[37.2090,-93.2923], indianapolis:[39.7684,-86.1581],
+effingham:[39.1200,-88.5434], champaign:[40.1164,-88.2434], peoria:[40.6936,-89.5890],
+louisville:[38.2527,-85.7585], lexington:[38.0406,-84.5037], cincinnati:[39.1031,-84.5120],
+dayton:[39.7589,-84.1916], columbus:[39.9612,-82.9988], akron:[41.0814,-81.5190],
+youngstown:[41.0998,-80.6495], cleveland_h:[41.4993,-81.6944], pittsburgh:[40.4406,-79.9959],
+wheeling:[40.0640,-80.7209], washington_pa:[40.1739,-80.2462], breezewood:[39.9956,-78.2439],
+cumberland:[39.6529,-78.7625], harrisburg:[40.2732,-76.8867], allentown:[40.6023,-75.4714],
+scranton:[41.4090,-75.6624], williamsport:[41.2412,-77.0011], clarion:[41.2148,-79.3795],
+binghamton:[42.0987,-75.9108], roanoke:[37.2710,-79.9414], johnson_city:[36.3134,-82.3535],
+charleston_wv:[38.3498,-81.6326], morgantown:[39.6295,-79.9559], spartanburg:[34.9496,-81.9320],
+greenville:[34.8526,-82.3940], columbia_sc:[34.0007,-81.0348], charleston_sc:[32.7765,-79.9311],
+florence_sc:[34.1954,-79.7626], fayetteville_nc:[35.0527,-78.8784], petersburg:[37.2279,-77.4019],
+savannah:[32.0809,-81.0912], macon:[32.8407,-83.6324], valdosta:[30.8327,-83.2785],
+ocala:[29.1872,-82.1401], tampa:[27.9506,-82.4572], naples_fl:[26.1423,-81.7948],
+miami:[25.7617,-80.1918], fort_lauderdale:[26.1224,-80.1373], west_palm:[26.7153,-80.0534],
+daytona:[29.2108,-81.0228], orlando:[28.5383,-81.3792], jacksonville:[30.3322,-81.6557],
+tallahassee:[30.4383,-84.2807], baton_rouge:[30.4515,-91.1871], new_orleans:[29.9511,-90.0715],
+lafayette_la:[30.2241,-92.0198], hattiesburg:[31.3271,-89.2903], slidell:[30.2752,-89.7812],
+paducah:[37.0834,-88.6000], mount_vernon_il:[38.3173,-88.9031], lansing:[42.7325,-84.5555],
+grand_rapids:[42.9634,-85.6681], muskegon:[43.2342,-86.2484], flint:[43.0125,-83.6875],
+saginaw:[43.4195,-83.9508], mackinaw_city:[45.7778,-84.7272], port_huron:[42.9709,-82.4249],
+plattsburgh:[44.6995,-73.4529], white_river:[43.6490,-72.3193], manchester_nh:[42.9956,-71.4548],
+concord_nh:[43.2081,-71.5376], montpelier:[44.2601,-72.5754], burlington_vt:[44.4759,-73.2121],
+portland_me:[43.6591,-70.2568], bangor:[44.8016,-68.7712], front_royal:[38.9182,-78.1944],
+muskogee:[35.7479,-95.3697], joplin:[37.0842,-94.5133],
+/* interior west + northern tier secondary routes */
+bend:[44.0582,-121.3153], klamath_falls:[42.2249,-121.7817], weed:[41.4226,-122.3861],
+lakeview:[42.1888,-120.3458], burns:[43.5863,-119.0541], ely:[39.2474,-114.8886],
+tonopah:[38.0672,-117.2300], pioche:[37.9277,-114.4517], price:[39.5994,-110.8107],
+jackson_wy:[43.4799,-110.7624], bishop:[37.3614,-118.3997], winnemucca:[40.9729,-117.7357],
+mcdermitt:[41.9988,-117.7180], jordan_valley:[42.9768,-117.0535], grangeville:[45.9260,-116.1224],
+lewiston:[46.4165,-117.0177], moscow:[46.7324,-117.0002], sandpoint:[48.2766,-116.5535],
+bonners_ferry:[48.6913,-116.3163], libby:[48.3883,-115.5560], hamilton:[46.2469,-114.1595],
+dillon:[45.2163,-112.6375], vernal:[40.4555,-109.5287], durango:[37.2753,-107.8801],
+farmington_nm:[36.7281,-108.2058]
 };
+
 /* [class, [waypoints...]]  class -> free-flow mph */
-const SPEED = { i:65, u:55, s:45, f:11 };   /* f = ferry, effective incl. queueing */
+const SPEED = { i:68, u:58, s:45, f:11 };
 const ROADS = [
-['i',['bellingham','mtvernon','everett','lynnwood','seattle','tacoma','olympia','centralia','longview','vancouver','portland','salem','albany','eugene','roseburg','grantspass','medford','yreka','weed','redding','redbluff','williams','sacramento','stockton','modesto','merced','fresno']],
-['i',['portland','hoodriver','thedalles','pendleton','lagrande','bakercity','ontario','boise','mountainhome','twinfalls','burley','snowville','tremonton','brigham','ogden','slc']],
-['i',['ellensburg','yakima','toppenish','kennewick']],
-['i',['seattle','northbend','snoqualmie','cleelum','ellensburg','moseslake','ritzville','spokane','coeurdalene','kellogg','stregis','missoula','deerlodge','butte','bozeman']],
-['i',['sacramento','auburn','truckee','reno','fernley','lovelock','winnemucca','battlemountain','elko','wells','wendover','slc']],
-['i',['slc','ogden','brigham','tremonton','pocatello','idahofalls','dillon','butte','helena','greatfalls']],
-['i',['twinfalls','pocatello']],
-['u',['weed','dorris','klamathfalls','chemult','lapine','bend','redmond','madras','thedalles','goldendale','yakima','ellensburg','wenatchee','okanogan']],
-['u',['newportor','toledo','corvallis','albany','sweethome','santiampass','sisters','bend','brothers','burns','vale','ontario']],
-['u',['reno','susanville','alturas','lakeview','burns','johnday','pendleton','kennewick','ritzville','spokane']],
-['u',['winnemucca','mcdermitt','jordanvalley','marsing','nampa','payette','weiser','council','newmeadows','grangeville','lewiston','moscow','coeurdalene','sandpoint','bonnersferry']],
-['u',['winnemucca','lovelock','fallon','hawthorne','tonopah','beatty']],
-['u',['wells','jackpot','twinfalls']],
-['u',['wells','ely','pioche']],
-['u',['sacramento','southlaketahoe','carsoncity','fallon','austin','eurekanv','ely']],
-['u',['ely','tonopah']],
-['u',['olympia','shelton','aberdeen','hoquiam','forks','portangeles','sequim','porttownsend']],
-['u',['astoria','seaside','tillamook','lincolncity','newportor','florence','reedsport','coosbay','bandon','portorford','goldbeach','brookings','crescentcity','eurekaca','fortuna','willits','ukiah','cloverdale','santarosa','novato','sanrafael','sf']],
-['u',['grantspass','crescentcity']],
-['u',['everett','monroe','skykomish','leavenworth','wenatchee','ephrata','ritzville','spokane','newportwa','sandpoint','bonnersferry','libby','kalispell']],
-['u',['aberdeen','olympia','chehalis','morton','whitepass','naches','yakima']],
-['u',['portland','sandy','govtcamp','madras','prineville','mitchell','johnday','vale']],
-['u',['boise','mountainhome','carey','arco','idahofalls']],
-['u',['twinfalls','shoshone','challis','salmon','missoula']],
-['u',['spokane','hamilton']],
-['s',['eugene','oakridge','crescentlake','chemult']],
-['s',['klamathfalls','bly','lakeview']],
-['s',['lapine','paisley','lakeview']],
-['s',['burns','crane','princeton','burnsjunction']],
-['s',['redding','burney','alturas']],
-['s',['oroville','quincy','portola','reno']],
-['s',['auburn','jacksonca']],
-['s',['mtvernon','marblemount','winthrop','twisp','okanogan','tonasket','republic','colville','newportwa']],
-['s',['tacoma','gigharbor','bremerton','poulsbo','kingston']],
-['s',['clinton','coupeville']],
-['s',['bainbridge','poulsbo']],
-['s',['lynnwood','edmonds']],
-['s',['everett','mukilteo']],
-['s',['seattle','seatf']],
-['s',['seattle','fauntleroy']],
-['s',['tacoma','pointdefiance']],
-['s',['vashon','tahlequah']],
-['s',['sf','halfmoonbay','santacruz']],
-['s',['santacruz','gilroy','sanjose']],
-['s',['sanjose','oakland','sf']],
-['s',['hines','burns']],
-['s',['marysville','oroville']],
-['s',['dillon','hamilton']],
-['s',['threeforks','bozeman']],
-['u',['redbluff','chico','yubacity','sacramento']],
-['u',['susanville','doyle','reno']],
-['f',['edmonds','kingston']],
-['f',['mukilteo','clinton']],
-['f',['seatf','bainbridge']],
-['f',['seatf','bremerton']],
-['f',['fauntleroy','vashon']],
-['f',['tahlequah','pointdefiance']],
-['f',['porttownsend','coupeville']],
-['f',['astoria','megler']]
+/* --- Interstates --- */
+['i',['seattle','tacoma','olympia','centralia','portland','salem','eugene','grants_pass','roseburg','medford','redding','sacramento','stockton','modesto','fresno','bakersfield','los_angeles','san_diego']],
+['i',['seattle','ellensburg','spokane','coeur_dalene','missoula','butte','bozeman','billings','sheridan','rapid_city','mitchell','sioux_falls','albert_lea','rochester_mn','la_crosse','madison','chicago','gary','toledo','cleveland','erie','buffalo','rochester_ny','syracuse','albany','springfield_ma','boston']],
+['i',['san_francisco','sacramento','reno','elko','salt_lake','rock_springs','cheyenne','north_platte','lincoln','omaha','des_moines','iowa_city','joliet','youngstown','clarion','williamsport','scranton','nyc']],
+['i',['denver','hays','kansas_city','columbia_mo','st_louis','effingham','indianapolis','dayton','columbus','wheeling','washington_pa','breezewood','baltimore']],
+['i',['miami','fort_lauderdale','west_palm','daytona','jacksonville','savannah','charleston_sc','florence_sc','fayetteville_nc','raleigh','petersburg','richmond','washington_dc','baltimore','wilmington_de','philadelphia','newark','nyc','new_haven','providence','boston','portland_me','bangor']],
+['i',['los_angeles','palm_springs','phoenix','tucson','el_paso','las_cruces','midland','odessa','san_antonio','houston','baton_rouge','new_orleans','mobile','tallahassee','jacksonville']],
+['i',['barstow','kingman','flagstaff','albuquerque','amarillo','oklahoma_city','fort_smith','little_rock','memphis','nashville','knoxville','asheville','greensboro','raleigh','wilmington_nc']],
+['i',['odessa','midland','abilene','fort_worth','dallas','shreveport','jackson_ms','meridian','birmingham','atlanta','columbia_sc','florence_sc']],
+['i',['duluth','minneapolis','des_moines','kansas_city','wichita','oklahoma_city','dallas','waco','austin','san_antonio','laredo']],
+['i',['dallas','houston']],
+['i',['chicago','springfield_ma','st_louis','memphis','jackson_ms','new_orleans']],
+['i',['chicago','gary','indianapolis','louisville','nashville','birmingham','montgomery','mobile']],
+['i',['flint','saginaw','detroit','toledo','dayton','cincinnati','lexington','knoxville','chattanooga','atlanta','macon','valdosta','ocala','tampa','naples_fl','miami']],
+['i',['montgomery','atlanta','greenville','charlotte','greensboro','durham','petersburg','richmond']],
+['i',['knoxville','roanoke','harrisburg','scranton','binghamton','syracuse']],
+['i',['cleveland','akron','charleston_wv','charlotte','columbia_sc']],
+['i',['st_louis','louisville','lexington','charleston_wv','richmond','norfolk']],
+['i',['oklahoma_city','tulsa','springfield_mo','st_louis']],
+['i',['kansas_city','omaha','sioux_falls','fargo','grand_forks']],
+['i',['billings','wolf_point','bismarck','fargo','minneapolis','mankato_placeholder','madison','milwaukee','chicago','benton_harbor_placeholder','detroit','port_huron']],
+['i',['las_cruces','albuquerque','santa_fe','pueblo','colorado_springs','denver','cheyenne','casper','billings']],
+['i',['san_diego','barstow','las_vegas','st_george','provo','salt_lake','ogden','pocatello','idaho_falls','butte']],
+['i',['portland','pendleton_placeholder','boise','twin_falls','tremonton','ogden']],
+['i',['denver','grand_junction','green_river','salina_ut','ogden']],
+['i',['denver','julesburg','north_platte']],
+['i',['scranton','hartford','boston']],
+['i',['cleveland','columbus','cincinnati','louisville']],
+['i',['iowa_city','peoria','champaign','indianapolis','cincinnati']],
+['i',['chicago','rockford','davenport']],
+['i',['milwaukee','green_bay']],
+['i',['detroit','lansing','grand_rapids','muskegon']],
+['i',['pittsburgh','washington_pa','morgantown','charleston_wv']],
+['i',['baltimore','cumberland','washington_pa']],
+['i',['washington_dc','front_royal']],
+['i',['nyc','albany','plattsburgh']],
+['i',['new_haven','hartford','springfield_ma','white_river']],
+['i',['boston','manchester_nh','concord_nh']],
+['i',['concord_nh','white_river','montpelier','burlington_vt']],
+['i',['savannah','macon']],
+['i',['charleston_sc','columbia_sc','spartanburg','asheville','johnson_city']],
+['i',['tampa','orlando','daytona']],
+['i',['phoenix','flagstaff']],
+['i',['san_diego','yuma','casa_grande','tucson']],
+['i',['corpus_christi','san_antonio']],
+['i',['lubbock','amarillo']],
+['i',['birmingham','chattanooga']],
+['i',['slidell','hattiesburg','meridian']],
+['i',['nashville','chattanooga']],
+['i',['nashville','paducah','mount_vernon_il']],
+['i',['chicago','champaign','mount_vernon_il']],
+['i',['shreveport','lafayette_la']],
+['i',['baltimore','harrisburg']],
+['i',['nyc','allentown','harrisburg']],
+['i',['philadelphia','harrisburg','breezewood','pittsburgh']],
+['i',['pittsburgh','erie']],
+['i',['ellensburg','yakima','kennewick']],
+['i',['north_platte','denver']],
+['i',['columbus','pittsburgh']],
+/* --- US highways / secondary (class u and s) --- */
+['u',['redding','weed','klamath_falls','bend','portland']],
+['u',['bend','burns','ontario_placeholder','boise']],
+['u',['reno','susanville_placeholder','alturas_placeholder','lakeview','burns','vale_placeholder','boise']],
+['u',['winnemucca','mcdermitt','jordan_valley','boise']],
+['u',['boise','grangeville','lewiston','moscow','coeur_dalene','sandpoint','bonners_ferry','kalispell']],
+['u',['wells','ely','pioche','st_george']],
+['u',['reno','tonopah','las_vegas']],
+['u',['reno','bishop','barstow']],
+['u',['salt_lake','price','grand_junction']],
+['u',['rock_springs','vernal','grand_junction']],
+['u',['denver','durango','farmington_nm','albuquerque']],
+['u',['billings','bozeman']],
+['u',['great_falls','havre','williston','minot','grand_forks']],
+['u',['spokane','colville_placeholder','havre']],
+['u',['missoula','kalispell','libby','bonners_ferry']],
+['u',['missoula','hamilton','dillon','idaho_falls']],
+['u',['bozeman','jackson_wy','rock_springs']],
+['u',['idaho_falls','salmon','challis','twin_falls']],
+['u',['casper','rapid_city']],
+['u',['el_paso','alamogordo_placeholder','roswell_placeholder','lubbock']],
+['u',['tucson','nogales_placeholder']],
+['u',['flagstaff','phoenix']],
+['u',['sacramento','south_lake_placeholder','reno']],
+['u',['fresno','bakersfield']],
+['u',['los_angeles','santa_barbara_placeholder','san_luis_placeholder','santa_cruz_placeholder','san_francisco']],
+['s',['san_francisco','sacramento']],
+['s',['medford','grants_pass']],
+['s',['great_falls','helena','deer_lodge','missoula']],
+['s',['helena','butte']],
+['s',['salt_lake','logan_placeholder','pocatello']],
+['s',['denver','colorado_springs']],
+['s',['wichita','amarillo']],
+['s',['tulsa','joplin','kansas_city']],
+['u',['little_rock','memphis']],
+['u',['little_rock','muskogee','tulsa']],
+['s',['montgomery','meridian']],
+['s',['charlotte','spartanburg']],
+['s',['richmond','norfolk']],
+['s',['harrisburg','allentown','nyc']],
+['s',['albany','binghamton']],
+['s',['portland_me','bangor']]
 ];
 
 /* ================= GEOMETRY ================= */
 const D2R=Math.PI/180, R2D=180/Math.PI, EARTH_MI=3958.7613;
-/* Screen-oriented Web Mercator: y grows downward, so NEGATE ln(tan(...)).
-   Conformal -> projected squares are ground squares, and the tile lattice
-   is a uniform square grid of 360/2^z projected degrees. */
 function proj(lat,lng){ return {x:lng, y:-Math.log(Math.tan(Math.PI/4+(lat*D2R)/2))*R2D}; }
 function unproj(x,y){ return {lat:(2*Math.atan(Math.exp(-y*D2R))-Math.PI/2)*R2D, lng:x}; }
 function haversine(a,b){
@@ -508,19 +781,25 @@ function haversine(a,b){
   const s=Math.sin(dLat/2)**2+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.sin(dLng/2)**2;
   return 2*EARTH_MI*Math.asin(Math.min(1,Math.sqrt(s)));
 }
-function destination(from,angDist,bearing){
-  const p1=from.lat*D2R, l1=from.lng*D2R;
-  const p2=Math.asin(Math.sin(p1)*Math.cos(angDist)+Math.cos(p1)*Math.sin(angDist)*Math.cos(bearing));
-  const l2=l1+Math.atan2(Math.sin(bearing)*Math.sin(angDist)*Math.cos(p1), Math.cos(angDist)-Math.sin(p1)*Math.sin(p2));
-  return {lat:p2*R2D, lng:l2*R2D};
+function pointInPoly(x,y,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i][0], yi=poly[i][1], xj=poly[j][0], yj=poly[j][1];
+    if(((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
 }
+function inUS(lng,lat){ return pointInPoly(lng,lat,US_OUTLINE); }
+
+let US_PATH='M'+US_OUTLINE.map(([lng,lat])=>{ const q=proj(lat,lng); return q.x.toFixed(2)+' '+q.y.toFixed(2); }).join('L')+'Z';
+document.getElementById('usClipPath').setAttribute('d', US_PATH);
 
 /* ================= GRID ================= */
 function gridFor(bounds,targetW){
   const xspan=bounds.x1-bounds.x0, yspan=bounds.y1-bounds.y0;
   const gw=targetW, gh=Math.max(8,Math.round(targetW*yspan/xspan));
   const cw=xspan/gw, ch=yspan/gh;
-  const mpcRow=new Float32Array(gh);   /* miles per cell side, per row */
+  const mpcRow=new Float32Array(gh);
   for(let j=0;j<gh;j++){
     const lat=unproj(0,bounds.y0+(j+0.5)*ch).lat;
     mpcRow[j]=cw*69.17*Math.cos(lat*D2R);
@@ -540,7 +819,7 @@ function buildSpeedField(bounds,G,offroadMph){
       const pa=proj(A[0],A[1]), pb=proj(B[0],B[1]);
       const x0=(pa.x-bounds.x0)/cw, y0=(pa.y-bounds.y0)/ch;
       const x1=(pb.x-bounds.x0)/cw, y1=(pb.y-bounds.y0)/ch;
-      const steps=Math.max(1,Math.ceil(Math.max(Math.abs(x1-x0),Math.abs(y1-y0))*2));
+      const steps=Math.max(1,Math.ceil(Math.max(Math.abs(x1-x0),Math.abs(y1-y0))*3));
       for(let s=0;s<=steps;s++){
         const t=s/steps;
         const cx=Math.round(x0+(x1-x0)*t), cy=Math.round(y0+(y1-y0)*t);
@@ -550,17 +829,7 @@ function buildSpeedField(bounds,G,offroadMph){
       }
     }
   }
-  /* one dilation pass so corridors are 3 cells wide */
-  const out=new Float32Array(speed);
-  for(let j=0;j<gh;j++) for(let i=0;i<gw;i++){
-    const k=j*gw+i; let m=speed[k];
-    if(i>0&&speed[k-1]>m)m=speed[k-1];
-    if(i<gw-1&&speed[k+1]>m)m=speed[k+1];
-    if(j>0&&speed[k-gw]>m)m=speed[k-gw];
-    if(j<gh-1&&speed[k+gw]>m)m=speed[k+gw];
-    out[k]=m;
-  }
-  return out;
+  return speed;
 }
 
 /* ================= SEEDS ================= */
@@ -573,7 +842,7 @@ function seedCells(list,bounds,G){
     cx=Math.max(0,Math.min(gw-1,cx)); cy=Math.max(0,Math.min(gh-1,cy));
     if(taken.has(cy*gw+cx)){
       let done=false;
-      for(let r=1;r<=5&&!done;r++)
+      for(let r=1;r<=6&&!done;r++)
         for(let dy=-r;dy<=r&&!done;dy++)
           for(let dx=-r;dx<=r&&!done;dx++){
             if(Math.abs(dx)!==r&&Math.abs(dy)!==r) continue;
@@ -683,223 +952,79 @@ function computeCells(list,b){
 }
 
 /* ==================== POPULATION ==================== */
-/* [lat, lon, population] - sub-metro clusters with real census/estimate
-   populations. Splitting metros into clusters (rather than one blob) is what
-   lets the basins divide a metro correctly. */
-const POP_CITIES_A = [
-[47.606,-122.332,1150000],[47.610,-122.190,750000],[47.350,-122.250,620000],
-[47.253,-122.444,560000],[47.979,-122.202,470000],[47.570,-122.630,275000],
-[47.659,-117.426,450000],[47.643,-117.238,140000],[45.639,-122.662,250000],
-[46.230,-119.130,305000],[46.602,-120.506,200000],[47.038,-122.901,200000],
-[48.749,-122.478,160000],[47.424,-120.310,90000],[46.140,-122.910,75000],
-[46.700,-122.960,60000],[46.976,-123.816,55000],[47.130,-119.278,55000],
-[46.065,-118.343,55000],[46.730,-117.182,40000],[46.997,-120.548,42000],
-[48.118,-123.431,45000],[48.421,-122.334,60000],[48.293,-122.643,35000],
-[47.215,-123.101,25000],[48.117,-122.760,20000],[48.080,-123.102,22000],
-[47.736,-122.647,30000],[48.547,-117.906,12000],[48.411,-119.528,12000],
-[47.318,-119.553,12000],[46.826,-119.175,12000],[46.324,-120.009,20000],
-[46.377,-120.309,12000],[45.823,-120.826,5000],[48.180,-117.044,5000],
-[48.648,-118.734,3000],[46.323,-117.972,4000],[46.416,-117.046,10000],
-[46.049,-118.388,12000],[47.950,-117.480,12000],[47.950,-124.386,5000],
-[48.478,-120.186,1500],[48.361,-119.584,4000],[48.705,-119.439,2000],
-[45.515,-122.678,800000],[45.500,-122.430,300000],[45.500,-122.850,450000],
-[45.420,-122.700,150000],[44.943,-123.035,280000],[44.052,-123.087,290000],
-[44.058,-121.315,130000],[44.273,-121.174,40000],[42.327,-122.876,150000],
-[42.195,-122.710,35000],[42.439,-123.328,60000],[44.565,-123.262,75000],
-[44.637,-123.106,70000],[43.217,-123.342,50000],[42.225,-121.782,48000],
-[45.840,-119.290,40000],[45.672,-118.789,30000],[45.325,-118.088,20000],
-[44.027,-116.963,25000],[44.775,-117.834,12000],[45.705,-121.522,15000],
-[45.595,-121.179,20000],[44.300,-120.835,15000],[44.634,-121.130,12000],
-[43.586,-119.054,5000],[42.189,-120.346,5000],[44.416,-118.953,4000],
-[43.982,-117.239,3000],[44.637,-124.053,18000],[46.188,-123.831,18000],
-[45.456,-123.844,10000],[44.958,-124.017,12000],[43.983,-124.100,12000],
-[43.380,-124.220,30000],[42.053,-124.284,12000],[43.798,-123.060,15000],
-[44.398,-122.736,12000],[45.300,-122.973,30000],[45.210,-123.199,40000],
-[45.144,-122.855,30000],[45.005,-122.783,15000],[44.919,-123.317,25000],
-[45.397,-122.261,15000],[45.263,-122.693,22000],[45.760,-122.877,20000],
-[45.290,-122.334,5000],[43.747,-122.461,5000],[44.291,-121.549,5000],
-[45.930,-118.390,10000],[43.877,-117.001,4000],[45.353,-119.553,2000],
-[45.234,-120.185,1500],[44.998,-120.216,1000],[45.426,-117.279,3000],
-[45.144,-123.060,8000],[44.734,-122.940,8000],[45.490,-122.560,25000],
-[45.400,-122.560,22000],[45.560,-122.900,18000],[45.260,-122.560,12000],
-[44.100,-123.060,15000],[43.210,-123.340,8000],[42.700,-123.400,8000],
-[44.060,-123.120,12000],[45.620,-122.680,20000],[45.580,-122.500,18000]
+/* Metro kernels: [lat, lon, population in thousands].
+   ~200 entries covering every metro of consequence plus the emptier West.
+   Sums to roughly 265M; the rural residual carries the rest to POP_TARGET. */
+const POP_METROS=[
+[40.71,-74.01,19600],[40.79,-73.20,2900],[40.73,-74.17,2300],
+[39.95,-75.17,6250],[42.36,-71.06,4900],[42.26,-71.80,980],[41.82,-71.41,1680],
+[41.76,-72.68,1210],[41.31,-72.92,870],[42.10,-72.59,700],[41.19,-73.19,960],
+[42.65,-73.76,900],[42.89,-78.88,1170],[43.16,-77.61,1090],[43.05,-76.15,660],
+[43.10,-75.23,290],[42.10,-75.91,240],[40.44,-79.99,2460],[40.27,-76.88,600],
+[40.60,-75.49,870],[41.41,-75.66,570],[40.34,-75.93,430],[40.04,-76.31,560],
+[42.13,-80.09,270],[43.66,-70.26,560],[44.80,-68.77,155],[44.48,-73.21,225],
+[42.99,-71.45,425],[43.21,-71.54,155],
+[41.88,-87.63,9500],[42.33,-83.05,4340],[42.96,-85.67,1090],[42.73,-84.56,550],
+[43.01,-83.69,406],[42.28,-83.74,370],[39.96,-83.00,2180],[41.50,-81.69,2190],
+[39.10,-84.51,2260],[39.76,-84.19,815],[41.65,-83.54,640],[41.08,-81.52,700],
+[41.10,-80.65,540],[39.77,-86.16,2140],[41.08,-85.14,430],[41.68,-86.25,320],
+[37.97,-87.57,315],[43.04,-87.91,1570],[43.07,-89.40,690],[44.51,-88.02,330],
+[44.98,-93.27,2400],[44.95,-93.09,1300],[46.79,-92.10,290],[44.01,-92.48,230],
+[38.63,-90.20,2820],[39.10,-94.58,2200],[37.21,-93.29,480],[41.59,-93.62,730],
+[41.98,-91.67,275],[41.52,-90.58,385],[41.26,-95.93,970],[40.81,-96.68,340],
+[37.69,-97.34,650],[39.05,-95.68,233],[43.55,-96.70,290],[46.88,-96.79,250],
+[46.81,-100.78,135],[44.08,-103.23,155],[42.50,-96.40,145],[40.69,-89.59,370],
+[42.27,-89.09,340],[40.12,-88.24,235],[39.80,-89.64,208],[41.53,-93.62,700],
+[29.76,-95.37,5200],[32.78,-96.80,4400],[32.75,-97.33,3400],[30.27,-97.74,2470],
+[29.42,-98.49,2650],[31.76,-106.49,870],[27.80,-97.40,425],[26.20,-98.24,880],
+[25.90,-97.50,425],[33.58,-101.86,330],[35.22,-101.83,270],[31.99,-102.08,340],
+[31.55,-97.15,290],[30.08,-94.13,400],[30.45,-91.19,880],[29.95,-90.07,1270],
+[32.53,-93.75,390],[30.22,-92.02,500],[32.30,-90.18,590],[30.37,-89.09,420],
+[31.33,-89.29,170],[34.75,-92.29,750],[35.15,-90.05,1340],[36.16,-86.78,2100],
+[35.96,-83.92,900],[35.05,-85.31,570],[33.52,-86.80,1180],[32.37,-86.30,386],
+[34.73,-86.59,520],[30.69,-88.04,430],[33.75,-84.39,6300],[33.47,-81.97,620],
+[32.08,-81.09,420],[32.84,-83.63,235],[32.46,-84.99,330],[31.58,-84.16,145],
+[35.23,-80.84,2800],[35.78,-78.64,1450],[36.07,-79.79,780],[36.10,-80.24,690],
+[35.99,-78.90,650],[35.60,-82.55,480],[34.23,-77.94,290],[35.05,-78.88,530],
+[34.85,-82.39,950],[34.00,-81.03,840],[32.78,-79.93,830],[37.54,-77.44,1340],
+[36.85,-75.98,1800],[37.27,-79.94,315],[38.03,-78.48,225],[37.41,-79.14,265],
+[38.91,-77.04,6400],[39.29,-76.61,2840],[38.25,-85.76,1360],[38.04,-84.50,520],
+[36.99,-86.44,190],[35.39,-94.40,250],[36.06,-94.16,550],[35.84,-90.70,135],
+[25.76,-80.19,2800],[26.12,-80.14,2000],[26.72,-80.05,1500],[27.95,-82.46,3200],
+[27.77,-82.64,1000],[27.34,-82.53,900],[28.54,-81.38,2800],[28.04,-81.95,780],
+[29.21,-81.02,720],[28.08,-80.61,640],[30.33,-81.66,1700],[29.65,-82.32,350],
+[30.44,-84.28,390],[29.19,-82.14,400],[26.64,-81.87,800],[26.14,-81.79,400],
+[30.42,-87.22,510],[30.42,-86.62,290],[30.16,-85.66,200],
+[33.45,-112.07,5100],[32.22,-110.97,1070],[36.17,-115.14,2350],[39.53,-119.81,500],
+[34.05,-118.24,12800],[33.75,-117.87,3200],[33.95,-117.40,2400],[34.11,-117.29,2200],
+[32.72,-117.16,3300],[35.37,-119.02,900],[36.74,-119.79,1010],[38.58,-121.49,2420],
+[37.96,-121.29,800],[37.64,-121.00,550],[37.34,-121.89,2000],[37.77,-122.42,4700],
+[37.80,-122.27,1100],[38.44,-122.71,490],[36.68,-121.66,440],[34.42,-119.70,250],
+[36.97,-122.03,270],[35.28,-120.66,290],[40.59,-122.39,180],[40.80,-124.16,135],
+[39.73,-121.84,210],[36.33,-119.29,480],[37.30,-120.48,280],
+[40.76,-111.89,1260],[40.23,-111.66,690],[41.22,-111.97,570],[37.10,-113.58,200],
+[39.74,-104.99,2960],[38.83,-104.82,770],[40.58,-105.08,360],[38.25,-104.61,170],
+[39.06,-108.55,155],[40.01,-105.27,330],[35.08,-106.65,920],[32.31,-106.78,220],
+[35.69,-105.94,155],[36.73,-108.21,120],[33.39,-104.52,110],
+[43.62,-116.20,790],[43.49,-112.03,165],[47.68,-116.78,185],[42.87,-112.45,90],
+[42.56,-114.46,115],[45.78,-108.50,185],[46.87,-113.99,120],[45.68,-111.04,120],
+[47.50,-111.30,84],[48.20,-114.31,110],[46.59,-112.03,84],[42.87,-106.31,80],
+[41.14,-104.82,100],[44.29,-105.50,47],[47.50,-97.03,70],[48.15,-103.62,80],
+[46.81,-100.78,80],[47.92,-97.03,70],[48.55,-109.68,30],[48.23,-101.29,60],
+[35.47,-97.52,1430],[36.15,-95.99,1030],[34.60,-98.39,130],[38.88,-99.33,60],
+[41.59,-93.62,730],[41.66,-91.53,175],[42.03,-93.62,100]
 ];
-const POP_CITIES_B = [
-[37.775,-122.419,870000],[37.804,-122.271,440000],[37.871,-122.272,120000],
-[37.936,-122.348,116000],[37.700,-122.450,250000],[37.563,-122.325,200000],
-[37.487,-122.236,150000],[37.430,-122.140,250000],[37.370,-121.990,280000],
-[37.338,-121.886,700000],[37.548,-121.989,240000],[37.669,-122.081,200000],
-[37.950,-122.030,300000],[38.005,-121.850,200000],[37.680,-121.830,200000],
-[38.104,-122.256,130000],[38.260,-122.040,220000],[38.297,-122.286,90000],
-[38.440,-122.714,250000],[38.150,-122.600,150000],[37.974,-122.531,80000],
-[36.974,-122.031,130000],[36.910,-121.757,65000],[36.678,-121.655,165000],
-[37.006,-121.568,60000],[37.464,-122.429,15000],[38.582,-121.494,550000],
-[38.409,-121.372,180000],[38.752,-121.288,160000],[38.640,-121.240,180000],
-[38.560,-121.720,100000],[37.958,-121.291,330000],[37.639,-120.997,230000],
-[37.494,-120.847,90000],[37.302,-120.483,90000],[36.738,-119.787,550000],
-[40.587,-122.392,100000],[39.729,-121.838,105000],[39.514,-121.556,25000],
-[39.140,-121.610,90000],[40.416,-120.653,18000],[39.328,-120.183,18000],
-[38.940,-119.977,25000],[38.897,-121.077,20000],[39.220,-121.060,30000],
-[38.730,-120.800,15000],[38.349,-120.774,8000],[37.984,-120.382,12000],
-[38.068,-120.540,8000],[39.150,-123.208,20000],[39.410,-123.355,8000],
-[38.806,-123.017,10000],[40.802,-124.164,30000],[40.866,-124.083,20000],
-[41.756,-124.203,10000],[41.487,-120.543,5000],[40.883,-121.661,5000],
-[39.937,-120.947,5000],[39.811,-120.469,3000],[39.100,-120.953,3000],
-[38.150,-122.250,60000],[38.010,-121.880,90000],[37.980,-121.310,70000],
-[38.480,-121.450,60000],[37.780,-122.150,60000],[37.600,-122.480,50000],
-[38.350,-122.700,40000],[38.700,-121.080,40000],[36.850,-119.900,40000],
-[37.200,-120.700,30000],[39.500,-121.600,20000],[40.180,-122.240,15000],
-[39.530,-119.814,270000],[39.535,-119.752,110000],[39.164,-119.767,60000],
-[39.608,-119.251,25000],[39.475,-118.777,15000],[40.832,-115.763,22000],
-[40.973,-117.736,12000],[40.179,-118.474,3000],[40.642,-116.934,5000],
-[39.247,-114.889,5000],[38.525,-118.624,5000],[38.067,-117.230,3000],
-[40.737,-114.031,5000],[41.983,-114.670,2000],[37.928,-114.452,2000],
-[39.493,-117.069,300],[39.512,-115.961,500],[36.910,-116.760,1500],
-[38.680,-118.100,1000],[39.300,-118.100,800],[40.200,-116.100,600],
-[43.615,-116.202,300000],[43.614,-116.390,130000],[43.541,-116.564,120000],
-[43.663,-116.687,70000],[47.678,-116.780,110000],[47.726,-116.885,45000],
-[43.492,-112.034,100000],[42.871,-112.446,70000],[42.563,-114.461,65000],
-[46.417,-117.018,45000],[46.732,-117.000,35000],[43.826,-111.790,40000],
-[48.277,-116.554,15000],[48.691,-116.316,5000],[43.133,-115.691,20000],
-[42.536,-113.793,15000],[45.926,-116.122,5000],[45.176,-113.895,5000],
-[44.911,-116.099,5000],[47.538,-116.119,5000],[46.479,-116.254,5000],
-[42.654,-111.604,4000],[44.251,-116.970,8000],[44.078,-116.934,10000],
-[43.874,-116.499,10000],[43.489,-116.414,30000],[43.696,-116.354,35000],
-[43.692,-116.494,15000],[43.470,-111.966,20000],[42.921,-112.466,15000],
-[43.520,-114.316,10000],[42.724,-114.519,12000],[42.616,-113.677,8000],
-[43.190,-112.345,12000],[43.672,-111.914,5000],[47.315,-116.570,3000],
-[43.300,-113.900,1000],[44.500,-114.230,1000],[43.640,-113.300,1000],
-[45.900,-116.100,1500],[44.900,-116.200,800],[43.300,-115.700,1500],
-[46.872,-113.994,90000],[47.500,-111.301,70000],[45.677,-111.043,65000],
-[46.004,-112.535,40000],[46.588,-112.025,40000],[48.196,-114.312,30000],
-[48.411,-114.337,10000],[46.247,-114.160,10000],[45.216,-112.638,6000],
-[45.662,-110.561,10000],[46.129,-112.942,10000],[46.396,-112.730,4000],
-[48.388,-115.556,4000],[47.694,-114.163,6000],[48.372,-114.181,6000],
-[45.892,-111.552,3000],[48.505,-111.857,4000],[48.550,-109.684,10000],
-[48.170,-111.947,3000],[47.812,-112.183,2000],[47.176,-113.481,2000],
-[46.400,-113.700,1000],[47.300,-115.100,500],[45.500,-112.500,1000],
-[40.761,-111.891,200000],[40.691,-112.001,140000],[40.234,-111.659,115000],
-[40.610,-111.939,117000],[40.297,-111.695,98000],[40.565,-111.860,97000],
-[41.223,-111.974,87000],[41.061,-111.971,82000],[40.562,-111.930,78000],
-[40.391,-111.851,76000],[40.687,-111.876,63000],[40.668,-111.939,60000],
-[40.667,-111.888,51000],[40.525,-111.864,49000],[40.889,-111.881,45000],
-[40.522,-111.939,45000],[41.161,-112.027,39000],[40.115,-111.655,40000],
-[40.364,-111.739,38000],[40.165,-111.611,35000],[41.035,-111.938,32000],
-[40.620,-111.810,33000],[41.111,-112.026,32000],[41.737,-111.834,53000],
-[41.089,-112.064,32000],[40.377,-111.796,33000],[40.669,-111.825,31000],
-[37.677,-113.062,35000],[40.531,-112.298,35000],[40.507,-111.413,16000],
-[40.646,-111.498,8000],[40.456,-109.529,10000],[39.599,-110.811,8000],
-[40.044,-111.732,21000],[41.510,-112.016,19000],[41.712,-112.166,10000],
-[39.710,-111.834,6000],[39.353,-112.577,3500],[38.772,-112.084,8000],
-[37.096,-113.568,95000],[37.175,-113.290,20000],[38.573,-109.550,5000],
-[40.000,-111.700,15000],[40.800,-111.900,20000],[41.400,-112.000,12000],
-[49.283,-123.121,700000],[49.105,-122.825,600000],[49.243,-122.973,250000],
-[49.166,-123.133,210000],[49.284,-122.794,150000],[49.104,-122.660,130000],
-[49.084,-123.058,110000],[49.320,-123.072,90000],[49.219,-122.601,90000],
-[49.206,-122.911,80000],[49.263,-122.781,60000],[49.050,-122.285,155000],
-[49.158,-121.951,95000],[49.133,-122.306,42000],[49.702,-123.156,25000],
-[50.117,-122.957,15000],[49.835,-124.524,14000],[49.474,-123.759,11000],
-[48.428,-123.365,95000],[48.470,-123.380,120000],[49.166,-123.940,100000],
-[49.690,-124.994,28000],[50.024,-125.244,36000],[49.234,-124.805,18000],
-[48.778,-123.708,25000],[49.319,-124.313,14000],[49.888,-119.496,150000],
-[50.676,-120.340,100000],[50.267,-119.272,45000],[49.500,-119.594,35000],
-[50.700,-119.283,18000],[50.998,-118.195,8000],[49.512,-115.769,20000],
-[49.495,-117.289,11000],[49.099,-117.703,8000],[49.325,-117.664,8000],
-[49.695,-112.840,105000],[50.041,-110.677,65000],[49.700,-112.800,15000],
-[50.400,-119.100,12000],[49.600,-121.400,10000],[49.900,-120.500,8000]
-];
-/* Suburban halo / residual entries: [lat, lon, population, sigma_km].
-   Each carries the metro population NOT already covered by the core
-   clusters in POP_CITIES_A/B, so the model's total urban mass matches
-   published metro figures and the diffuse rural residual stays small. */
-const POP_CITIES_C = [
-[37.700,-122.150,1900000,18],
-[38.600,-121.350,1100000,15],
-[45.480,-122.700, 550000,12],
-[36.800,-119.850, 450000,10],
-[37.980,-121.300, 450000,10],
-[37.650,-121.000, 230000, 8],
-[48.450,-123.400, 190000,10],
-[44.950,-123.050, 150000, 9],
-[39.150,-121.600,  80000, 7],
-[39.750,-121.850, 115000, 7],
-[40.600,-122.400,  80000, 7],
-[44.060,-123.100,  90000, 7],
-[48.750,-122.480,  70000, 7],
-[42.330,-122.880,  70000, 7],
-[46.600,-120.500,  60000, 7],
-[43.620,-116.250,  60000, 7],
-[49.890,-119.500,  70000, 8],
-[45.640,-122.660,  70000, 7],
-[47.250,-122.440,  90000, 8],
-[37.780,-122.420,  60000, 6],
-[38.550,-121.450,  70000, 7],
-[47.610,-122.330,  50000, 6],
-[40.760,-111.890,  40000, 6],
-[43.590,-116.200,  30000, 5],
-[39.530,-119.810,  40000, 6],
-[45.520,-122.680,  50000, 6],
-[44.050,-123.090,  30000, 5],
-[36.740,-119.790,  40000, 6],
-[37.340,-121.890,  40000, 6]
-];
+const POP_TARGET=340e6;   /* US resident population, ~340M */
+const POP_GRID={lon0:-125,lon1:-66,lat0:24,lat1:50,gw:590,gh:260,unit:4};
 
-/* ==================== POPULATION FIELD ==================== */
-/* ---- source selection ----
-   POP_SRC = null  -> use the kernel model below.
-   POP_SRC = 'data:image/png;base64,...' -> use a real GHS-POP raster.
-   See resamplePopRaster() for the expected encoding. */
-const POP_SRC = null;
-const POP_GRID = {lon0:-130, lon1:-108, lat0:36, lat1:52, gw:440, gh:320, unit:4};
-
-const POP_CITIES = POP_CITIES_A.concat(POP_CITIES_B, POP_CITIES_C);
-const POP_RING_MI = 500;
-/* Best estimate of the true resident population inside the 500-mi ring:
-   OR 4.24 + WA 7.71 + ID 1.84 + NV 3.10 + UT 3.27 + N.CA ~13 + W.MT ~0.7
-   + BC ~3.5 + WY sliver ~0.05  =  ~37.5M. */
-const POP_TARGET = 37.5e6;
-
-/* Crude Pacific / BC coastline: westernmost land longitude by latitude.
-   Only purpose is to stop the rural field from putting people in the ocean. */
-const COAST = [
- [36.0,-121.9],[36.6,-121.9],[37.0,-122.5],[37.5,-122.5],[38.0,-123.0],
- [38.5,-123.2],[39.0,-123.7],[39.5,-123.8],[40.0,-124.4],[40.5,-124.4],
- [41.0,-124.1],[41.5,-124.1],[42.0,-124.4],[42.5,-124.4],[43.0,-124.4],
- [43.5,-124.4],[44.0,-124.1],[44.5,-124.1],[45.0,-123.96],[45.5,-123.96],
- [46.0,-124.1],[46.5,-124.1],[47.0,-124.2],[47.5,-124.4],[48.0,-124.7],
- [48.4,-124.6],[49.0,-123.3],[49.3,-123.2],[49.8,-123.4],[50.5,-124.0],
- [51.2,-124.6]
-];
-function coastLon(lat){
-  if(lat<=COAST[0][0]) return COAST[0][1];
-  for(let i=0;i<COAST.length-1;i++){
-    const a=COAST[i], b=COAST[i+1];
-    if(lat>=a[0] && lat<=b[0]){
-      const t=(lat-a[0])/(b[0]-a[0]);
-      return a[1]+t*(b[1]-a[1]);
-    }
-  }
-  return COAST[COAST.length-1][1];
-}
-function isLand(lat,lng){
-  if(lng > coastLon(lat)) return true;
-  /* Vancouver Island: a box approximation, west of the mainland coast */
-  if(lat>=48.3 && lat<=51.0 && lng>=-126.8 && lng<=-123.25) return true;
-  return false;
-}
-
-/* sigma chosen so that peak density is roughly constant (~1.0k/km2), which
-   is what real urban areas look like. Scaling sigma as sqrt(pop) keeps
-   density invariant: P/(2*pi*s^2) is constant when s ~ sqrt(P). */
-function kernelSigma(pop, override){
-  if(override) return override;
-  return Math.min(16, Math.max(0.85, 0.40*Math.sqrt(pop/1000)));
+/* sigma is scaled so peak density stays roughly constant, i.e. s ~ sqrt(P). */
+function kernelSigma(pop){
+  return Math.min(30, Math.max(2.2, 0.55*Math.sqrt(pop/1000)));
 }
 
 let _popKey='', _popField=null, _popMeta=null;
 
-/* Returns {field, gw, gh, total, kernelSum, ruralSum, landCells}.
+/* Returns {field, gw, gh, total, kernelSum, ruralSum, landCells, gain, cities}.
    field[k] = people living in that cell. */
 function buildPopField(domain,G){
   const {gw,gh,cw,ch,mpcRow}=G;
@@ -907,16 +1032,16 @@ function buildPopField(domain,G){
   if(key===_popKey && _popField) return _popMeta;
 
   const N=gw*gh;
-  const dens=new Float64Array(N);        /* people per km2 */
-  const areaRow=new Float64Array(gh);    /* km2 per cell, per row */
+  const mass=new Float64Array(N);          /* people per cell, from kernels */
+  const areaRow=new Float64Array(gh);      /* km2 per cell, per row */
   for(let j=0;j<gh;j++){ const km=mpcRow[j]*1.609344; areaRow[j]=km*km; }
 
-  /* --- kernels --- */
-  for(let ci=0;ci<POP_CITIES.length;ci++){
-    const lat=POP_CITIES[ci][0], lng=POP_CITIES[ci][1], p=POP_CITIES[ci][2];
-    if(!p) continue;
+  /* --- kernels, mass-normalised so each metro contributes exactly P --- */
+  for(const [lat,lng,pk,sigOv] of POP_METROS){
+    const p=(pk||0)*1000;
+    if(!(p>0)) continue;
     const q=proj(lat,lng);
-    const s=kernelSigma(p, POP_CITIES[ci][3]);
+    const s=sigOv||kernelSigma(p);
     const cx=(q.x-domain.x0)/cw, cy=(q.y-domain.y0)/ch;
     const jc=Math.min(gh-1,Math.max(0,Math.round(cy)));
     const cellKm=mpcRow[jc]*1.609344;
@@ -925,55 +1050,65 @@ function buildPopField(domain,G){
     const i0=Math.max(0,Math.floor(cx-rCells)), i1=Math.min(gw-1,Math.ceil(cx+rCells));
     const j0=Math.max(0,Math.floor(cy-rCells)), j1=Math.min(gh-1,Math.ceil(cy+rCells));
     if(i0>i1||j0>j1) continue;
-    const peak=p/(2*Math.PI*s*s);       /* people/km2 at the centre */
-    const inv2s2=1/(2*s*s);
+    const inv2s2=1/(2*s*s), cut=9*s*s;
+    let wsum=0;
     for(let j=j0;j<=j1;j++){
       const dy=(j+0.5-cy)*mpcRow[j]*1.609344;
       const row=j*gw;
       for(let i=i0;i<=i1;i++){
         const dx=(i+0.5-cx)*mpcRow[j]*1.609344;
         const d2=dx*dx+dy*dy;
-        if(d2>9*s*s) continue;
-        dens[row+i]+=peak*Math.exp(-d2*inv2s2);
+        if(d2>cut) continue;
+        wsum+=Math.exp(-d2*inv2s2);
+      }
+    }
+    if(!(wsum>0)) continue;
+    const sc=p/wsum;
+    for(let j=j0;j<=j1;j++){
+      const dy=(j+0.5-cy)*mpcRow[j]*1.609344;
+      const row=j*gw;
+      for(let i=i0;i<=i1;i++){
+        const dx=(i+0.5-cx)*mpcRow[j]*1.609344;
+        const d2=dx*dx+dy*dy;
+        if(d2>cut) continue;
+        mass[row+i]+=Math.exp(-d2*inv2s2)*sc;
       }
     }
   }
 
-  /* --- land + ring masks, kernel total --- */
+  /* --- land mask over the national outline, plus kernel total --- */
   const land=new Uint8Array(N);
-  const pop=new Float64Array(N);
   let kernelSum=0, landCells=0;
   for(let j=0;j<gh;j++){
     const lat=unproj(0,domain.y0+(j+0.5)*ch).lat;
     const row=j*gw;
     for(let i=0;i<gw;i++){
       const lng=domain.x0+(i+0.5)*cw;
-      if(!isLand(lat,lng)) continue;
-      if(haversine(CENTER,{lat,lng})>POP_RING_MI) continue;
+      if(!inUS(lng,lat)) continue;
       land[row+i]=1; landCells++;
-      kernelSum+=dens[row+i]*areaRow[j];
+      kernelSum+=mass[row+i];
     }
   }
 
-  /* --- rural residual, shaped by proximity to population centres ---
-     R = gain * D^0.2.  Because D decays away from cities, so does R, which
-     is much closer to reality than a uniform floor over the desert. */
+  /* --- rural residual shaped by proximity to population centres ---
+     R = gain * D^0.2.  D decays away from cities, so R does too. */
   let shapeSum=0;
   const shape=new Float64Array(N);
   for(let j=0;j<gh;j++){
-    const row=j*gw;
+    const row=j*gw, a=areaRow[j];
     for(let i=0;i<gw;i++){
       const k=row+i;
       if(!land[k]) continue;
-      const v=Math.pow(dens[k]+1e-6, 0.2);
+      const v=Math.pow(mass[k]/a+1e-6, 0.2);
       shape[k]=v;
-      shapeSum+=v*areaRow[j];
+      shapeSum+=v*a;
     }
   }
   let gain=0;
   if(shapeSum>0 && POP_TARGET>kernelSum) gain=(POP_TARGET-kernelSum)/shapeSum;
-  gain=Math.min(gain, 60);
+  gain=Math.max(0,Math.min(gain,60));
 
+  const pop=new Float64Array(N);
   let ruralSum=0, total=0;
   for(let j=0;j<gh;j++){
     const row=j*gw, a=areaRow[j];
@@ -982,21 +1117,21 @@ function buildPopField(domain,G){
       if(!land[k]){ pop[k]=0; continue; }
       const rural=gain*shape[k];
       ruralSum+=rural*a;
-      pop[k]=(dens[k]+rural)*a;
+      pop[k]=mass[k]+rural*a;
       total+=pop[k];
     }
   }
 
   _popKey=key; _popField=pop;
-  _popMeta={field:pop, gw, gh, cw, ch, mpcRow, areaRow, total, kernelSum, ruralSum, landCells, gain, cities:POP_CITIES.length};
+  _popMeta={field:pop, gw, gh, cw, ch, mpcRow, areaRow, total, kernelSum, ruralSum, landCells, gain, cities:POP_METROS.length};
   return _popMeta;
 }
 
 /* ---------------- optional real GHS-POP raster ---------------- */
 /* POP_SRC is a PNG data URL over POP_GRID. Pixel (i,j) holds
    people-per-cell * POP_GRID.unit split as R=hi byte, G=lo byte.
-   Row 0 is the NORTH edge. Decoded once, then box-averaged onto the
-   basin grid inside buildPopField's caller via resamplePopRaster(). */
+   Row 0 is the NORTH edge. */
+const POP_SRC = null;
 let _popRaster=null, _popRasterReady=false;
 function loadPopRaster(cb){
   if(!POP_SRC){ cb(false); return; }
@@ -1017,8 +1152,6 @@ function loadPopRaster(cb){
   img.onerror=()=>{ _popRasterReady=false; cb(false); };
   img.src=POP_SRC;
 }
-
-/* box-average the decoded raster onto the current grid */
 function resamplePopRaster(domain,G){
   if(!_popRasterReady||!_popRaster) return null;
   const {gw,gh,cw,ch}=G, R=_popRaster;
@@ -1062,23 +1195,31 @@ const legendEl=document.getElementById('legend');
 const hiddenEl=document.getElementById('hiddenList');
 const statsEl=document.getElementById('stats');
 
-const parishes=RAW.map(r=>({id:r[0],name:r[1],jurisdiction:r[2],city:r[3],state:r[4],lat:r[5],lng:r[6],miles:r[7],hidden:false,custom:false}));
+const parishes=RAW.map(r=>({id:r[0],name:r[1],jurisdiction:r[2],city:r[3],state:r[4],lat:r[5],lng:r[6],hidden:false,custom:false}));
 const byId=new Map(parishes.map(p=>[p.id,p]));
 let nextId=parishes.reduce((m,p)=>Math.max(m,p.id),0)+1;
+
+/* nearest neighbour, replaces the old hard-coded "miles from Burns" */
+for(const p of parishes){
+  let m=Infinity;
+  for(const q of parishes) if(q!==p) m=Math.min(m,haversine(p,q));
+  p.near=isFinite(m)?m:0;
+}
+document.getElementById('pcount').textContent=parishes.length;
 
 const offJuris=new Set();
 let domain=null, vb=null;
 let mode='drive';
 let offroadMph=14;
-const GRID_W=420, PASSES=6;
+const GRID_W=560, PASSES=6;
 
 /* --- basin results --- */
 let basinHref='', basinG=null, basinDirty=true;
-let basinCounts=new Map();      /* id -> cells                */
-let basinAnchor=new Map();      /* id -> [x,y] label anchor   */
-let basinPop=new Map();         /* id -> people               */
-let basinJurFrac=new Map();     /* jur -> share of AREA       */
-let basinJurPop=new Map();      /* jur -> share of PEOPLE     */
+let basinCounts=new Map();
+let basinAnchor=new Map();
+let basinPop=new Map();
+let basinJurFrac=new Map();
+let basinJurPop=new Map();
 let totalPop=0, popMeta=null;
 
 /* --- crow-flies comparison --- */
@@ -1086,24 +1227,10 @@ let crowCells=[], crowDirty=true, crowJurFrac=new Map(), crowJurPop=new Map(), c
 
 function visible(){ return parishes.filter(p=>!p.hidden&&!offJuris.has(p.jurisdiction)); }
 
-const RING_PTS=(function(){
-  const d=500/EARTH_MI, N=240, pts=[];
-  for(let i=0;i<N;i++){ const t=destination(CENTER,d,i*2*Math.PI/N); pts.push(proj(t.lat,t.lng)); }
-  return pts;
-})();
-const RING='M'+RING_PTS.map(q=>q.x.toFixed(3)+' '+q.y.toFixed(3)).join('L')+'Z';
-
-document.getElementById('ringClipPath').setAttribute('d', RING);
-
-/* Domain = parish extent UNION the 500-mi ring */
+/* Domain = fixed CONUS bounding box (no more parish-derived extent) */
 function computeDomain(){
-  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
-  const acc=q=>{ if(q.x<x0)x0=q.x; if(q.x>x1)x1=q.x; if(q.y<y0)y0=q.y; if(q.y>y1)y1=q.y; };
-  for(const p of parishes) acc(proj(p.lat,p.lng));
-  for(const q of RING_PTS) acc(q);
-  if(!isFinite(x0)) return {x0:-1,x1:1,y0:-1,y1:1};
-  const pad=Math.max(x1-x0,y1-y0)*0.02+0.1;
-  return {x0:x0-pad,x1:x1+pad,y0:y0-pad,y1:y1+pad};
+  const nw=proj(US_BOUNDS.north,US_BOUNDS.west), se=proj(US_BOUNDS.south,US_BOUNDS.east);
+  return {x0:nw.x,x1:se.x,y0:nw.y,y1:se.y};
 }
 
 function fitView(){
@@ -1122,14 +1249,11 @@ function rebuildBasins(){
   const speed=buildSpeedField(domain,G,offroadMph);
   const seeds=seedCells(vis,domain,G);
   const {dist,lab}=propagateSweepFast(speed,G,seeds,PASSES);
-  const {gw,gh,cw,ch,mpcRow}=G;
+  const {gw,gh,cw,ch}=G;
 
-  /* population raster, co-registered to THIS grid (memoized on grid sig) */
   popMeta=buildPopField(domain,G);
   const popField=popMeta.field;
 
-  /* ONE pass over the grid: cell count, centroid, population, and the
-     population-weighted centroid all accumulate together. */
   const cnt=new Map(), sx=new Map(), sy=new Map(), ppl=new Map();
   const wxs=new Map(), wys=new Map(), wss=new Map();
   let tot=0;
@@ -1156,7 +1280,6 @@ function rebuildBasins(){
   basinPop=ppl;
   totalPop=tot;
 
-  /* label anchors: population-weighted centroid, falling back to the seed */
   const seedOf=new Map(seeds.map(s=>[s.id,s]));
   basinAnchor=new Map();
   for(const [l,c] of cnt){
@@ -1172,7 +1295,6 @@ function rebuildBasins(){
     basinAnchor.set(l,[domain.x0+(ax+0.5)*cw, domain.y0+(ay+0.5)*ch]);
   }
 
-  /* jurisdiction rollups: area and population */
   const jc=new Map(), jp=new Map();
   let allCells=0, allPop=0;
   for(const [l,c] of cnt){
@@ -1213,33 +1335,31 @@ function basinCanvas(lab,gw,gh,colorOf){
   return cv;
 }
 
-/* ============ crow-flies comparison (population too) ============ */
+/* ============ crow-flies comparison ============ */
 function rebuildCrow(){
-  crowCells=computeCells(visible(),domain);
-  popMeta=popMeta||buildPopField(domain,gridFor(domain,GRID_W));
+  const vis=visible();
+  crowCells=computeCells(vis,domain);
   const G=gridFor(domain,GRID_W);
+  popMeta=buildPopField(domain,G);
   const popField=popMeta.field;
-  const {gw,gh,cw,ch}=G;
-  /* assign each population cell to its nearest site (crow-flies) */
-  const sites=crowCells.map(c=>({id:c.site.p.id,x:c.site.x,y:c.site.y,j:c.site.p.jurisdiction}));
+  const {gw,gh}=G;
+
+  /* nearest-site labels from a uniform-speed sweep (chamfer ~ Euclidean),
+     instead of an O(cells x sites) scan. */
+  const uni=new Float32Array(gw*gh).fill(60);
+  const seeds=seedCells(vis,domain,G);
+  const {lab}=propagateSweepFast(uni,G,seeds,PASSES);
+
   const ppl=new Map(); let tot=0;
-  for(let j=0;j<gh;j++){
-    const y=domain.y0+(j+0.5)*ch;
-    const row=j*gw;
-    for(let i=0;i<gw;i++){
-      const pv=popField[row+i];
-      if(pv<=0) continue;
-      const x=domain.x0+(i+0.5)*cw;
-      let best=-1,bd=Infinity;
-      for(let s=0;s<sites.length;s++){
-        const dx=sites[s].x-x, dy=sites[s].y-y;
-        const d=dx*dx+dy*dy;
-        if(d<bd){ bd=d; best=sites[s].id; }
-      }
-      if(best>=0){ ppl.set(best,(ppl.get(best)||0)+pv); tot+=pv; }
-    }
+  for(let k=0;k<gw*gh;k++){
+    const pv=popField[k];
+    if(pv<=0) continue;
+    const l=lab[k];
+    if(l<0) continue;
+    ppl.set(l,(ppl.get(l)||0)+pv); tot+=pv;
   }
   crowPop=ppl; crowTotalPop=tot;
+
   let allCells=0, allPop=0; const jc=new Map(), jp=new Map();
   for(const c of crowCells){ allCells+=c.area; const j=c.site.p.jurisdiction; jc.set(j,(jc.get(j)||0)+c.area); }
   for(const [id,v] of ppl){ const p=byId.get(id); if(!p) continue; allPop+=v; jp.set(p.jurisdiction,(jp.get(p.jurisdiction)||0)+v); }
@@ -1249,11 +1369,11 @@ function rebuildCrow(){
 }
 
 /* ============================== RENDER ============================== */
-let rafId=null, pendingRender=false;
+let pendingRender=false;
 function schedule(){
   if(pendingRender) return;
   pendingRender=true;
-  rafId=requestAnimationFrame(()=>{ pendingRender=false; rafId=null; render(); });
+  requestAnimationFrame(()=>{ pendingRender=false; render(); });
 }
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -1302,27 +1422,23 @@ function render(){
   }
 
   tip.classList.remove('on');
-  const fs=11*upp, fs2=9.5*upp, pr=5.5*upp;
+  const fs=10*upp, fs2=8.4*upp, pr=3.8*upp;
   const out=[];
 
-  out.push('<path class="ring" d="'+RING+'"/>');
-  const cp=proj(CENTER.lat,CENTER.lng);
-  out.push('<g class="centerMark"><circle cx="'+cp.x+'" cy="'+cp.y+'" r="'+(7*upp)+
-    '"/><path d="M'+(cp.x-15*upp)+' '+cp.y+'H'+(cp.x+15*upp)+'M'+cp.x+' '+(cp.y-15*upp)+'V'+(cp.y+15*upp)+'"/></g>');
+  out.push('<path class="usBorder" d="'+US_PATH+'"/>');
 
-  /* labels: name, and population underneath when the basin is big enough */
-  out.push('<g class="labels" style="font-size:'+fs.toFixed(2)+'px;stroke-width:'+(3*upp).toFixed(3)+'">');
+  out.push('<g class="labels" style="font-size:'+fs.toFixed(3)+'px;stroke-width:'+(2.6*upp).toFixed(3)+'">');
   for(const p of vis){
     const a=anchors.get(p.id), wt=weights.get(p.id)||0;
     if(!a) continue;
-    if(wt<3000) continue;
+    if(wt<3400) continue;
     let nm=p.name;
-    if(nm.length>32) nm=nm.slice(0,31).trim()+'\u2026';
+    if(nm.length>30) nm=nm.slice(0,29).trim()+'\u2026';
     out.push('<text x="'+a[0].toFixed(2)+'" y="'+a[1].toFixed(2)+'">'+esc(nm)+'</text>');
     const pv=pops.get(p.id)||0;
-    if(wt>9000 && pv>0){
-      out.push('<text class="lp" x="'+a[0].toFixed(2)+'" y="'+(a[1]+fs*1.25).toFixed(2)+
-        '" style="font-size:'+fs2.toFixed(2)+'px">'+fmtPop(pv)+'</text>');
+    if(wt>7000 && pv>0){
+      out.push('<text class="lp" x="'+a[0].toFixed(2)+'" y="'+(a[1]+fs*1.2).toFixed(2)+
+        '" style="font-size:'+fs2.toFixed(3)+'px">'+fmtPop(pv)+'</text>');
     }
   }
   out.push('</g>');
@@ -1342,7 +1458,7 @@ function render(){
 function renderSidebar(){
   const vis=visible();
   const counts={};
-    for(const p of parishes) counts[p.jurisdiction]=(counts[p.jurisdiction]||0)+1;
+  for(const p of parishes) counts[p.jurisdiction]=(counts[p.jurisdiction]||0)+1;
   const shown=new Set(vis.map(p=>p.jurisdiction));
 
   const tot = mode==='drive'?totalPop:crowTotalPop;
@@ -1445,7 +1561,7 @@ function toUser(clientX,clientY){
 }
 function clampW(w){
   const base=domain.x1-domain.x0;
-  return Math.min(base*2, Math.max(base/80, w));
+  return Math.min(base*1.6, Math.max(base/90, w));
 }
 function zoomAt(q,f){
   const nw=clampW(vb.w*f), k=nw/vb.w;
@@ -1505,7 +1621,7 @@ svg.addEventListener('mousemove',e=>{
   }
   tip.innerHTML='<b>'+esc(p.name)+'</b>'+
     '<div class="tj">'+esc(fullName(p.jurisdiction))+'</div>'+
-    '<div class="tm">'+esc(p.city)+(p.state?', '+esc(p.state):'')+' &middot; '+p.miles+' mi from Burns</div>'+extra;
+    '<div class="tm">'+esc(p.city)+(p.state?', '+esc(p.state):'')+' &middot; nearest parish '+p.near.toFixed(0)+' mi</div>'+extra;
   tip.classList.add('on');
   const w=tip.offsetWidth||240, hg=tip.offsetHeight||70;
   let x=e.clientX+16, y=e.clientY+16;
@@ -1536,7 +1652,7 @@ hiddenEl.addEventListener('click',e=>{
     const id=+d.dataset.del;
     const i=parishes.findIndex(p=>p.id===id);
     if(i>=0){ parishes.splice(i,1); byId.delete(id); }
-    domain=computeDomain(); basinDirty=true; crowDirty=true; render();
+    basinDirty=true; crowDirty=true; render();
   }
 });
 
@@ -1586,7 +1702,8 @@ mJur.innerHTML=Object.keys(JUR).map(j=>'<option value="'+esc(j)+'">'+esc(j)+' \u
 function openCreate(q){
   pending=q;
   const ll=unproj(q.x,q.y);
-  mCoords.textContent=ll.lat.toFixed(4)+'\u00b0, '+ll.lng.toFixed(4)+'\u00b0  \u00b7  '+haversine(CENTER,ll).toFixed(1)+' mi from Burns';
+  mCoords.textContent=ll.lat.toFixed(4)+'\u00b0, '+ll.lng.toFixed(4)+'\u00b0'+
+    (inUS(ll.lng,ll.lat)?'':'\u00a0 \u00b7 \u00a0outside the national outline');
   mName.value=''; mJur.value='GOA';
   modal.classList.add('open');
   setTimeout(()=>mName.focus(),30);
@@ -1597,13 +1714,11 @@ function addParish(){
   if(!pending) return;
   const ll=unproj(pending.x,pending.y);
   const name=(mName.value||'').trim()||'Untitled parish';
+  let near=Infinity;
+  for(const q of parishes) near=Math.min(near,haversine(q,ll));
   const p={id:nextId++,name,jurisdiction:mJur.value,city:'\u2014',state:'',
-    lat:ll.lat,lng:ll.lng,miles:Math.round(haversine(CENTER,ll)*10)/10,hidden:false,custom:true};
+    lat:ll.lat,lng:ll.lng,near:isFinite(near)?near:0,hidden:false,custom:true};
   parishes.push(p); byId.set(p.id,p);
-  const nd=computeDomain();
-  const grew=nd.x0<domain.x0||nd.x1>domain.x1||nd.y0<domain.y0||nd.y1>domain.y1;
-  domain=nd;
-  if(grew) fitView();
   basinDirty=true; crowDirty=true;
   closeCreate(); render();
 }
@@ -1618,8 +1733,6 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeCreate(); });
 domain=computeDomain();
 fitView();
 
-/* If a real GHS-POP raster is supplied it decodes asynchronously, so we
-   render immediately and re-render once the raster is ready. */
 if(POP_SRC){
   loadPopRaster(ok=>{ basinDirty=true; crowDirty=true; render(); });
 }
