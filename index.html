@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Drive-time basins + population — 500 mi around Burns, OR &amp; Cedar City, UT</title>
+<title>Drive-time basins + population — 500 mi around Burns OR, Cedar City UT, Redig ND/SD</title>
 <style>
 :root{--bg:#070a0f;--panel:#0f1520;--panel2:#151d2b;--line:#212c3c;--text:#e8eef7;--muted:#8b9cb3;--accent:#4dabf7}
 *{box-sizing:border-box}
@@ -87,7 +87,7 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
 <body>
 <div id="app">
   <aside id="sidebar">
-    <div id="sbHead"><h1>Drive-time basins</h1><p>500 mi radius &middot; Burns, OR + Cedar City, UT &middot; population</p></div>
+    <div id="sbHead"><h1>Drive-time basins</h1><p>500 mi &middot; Burns OR &middot; Cedar City UT &middot; Redig ND/SD</p></div>
     <div id="sbBody">
       <div id="stats" class="stats"></div>
       <div class="sliderBox">
@@ -101,7 +101,7 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
       <h2 class="sec">Hidden <button id="restoreAll" class="mini">restore all</button></h2>
       <div id="hiddenList"></div>
     </div>
-    <div id="sbFoot">Click a dot to hide it &middot; click the map to add a parish<br>Drag to pan &middot; scroll to zoom &middot; two dashed rings = the two 500-mi searches</div>
+    <div id="sbFoot">Click a dot to hide it &middot; click the map to add a parish<br>Drag to pan &middot; scroll to zoom &middot; dashed rings = the three 500-mi searches</div>
   </aside>
   <main id="mapWrap">
     <svg id="map" xmlns="http://www.w3.org/2000/svg">
@@ -142,15 +142,19 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
    Basins = argmin over parishes of DRIVE TIME (multi-source shortest
    path across a road-speed cost surface). Population per basin is a
    histogram over the co-registered population raster.
-   Data: Assembly of Canonical Orthodox Bishops, two 500-mi proximity
-   searches - one around Burns, OR, one around Cedar City, UT - merged
+   Data: Assembly of Canonical Orthodox Bishops, three 500-mi proximity
+   searches - Burns OR, Cedar City UT, and Redig (ND/SD line) - merged
    and de-duplicated.
    ===================================================================== */
 
-/* The two search centres that generated the parish list. */
+/* The three search centres that generated the parish list.
+   NOTE: "redig, nd" does not resolve in the directory's geocoder (Redig is
+   an unincorporated place in Harding Co., SD, ~3 mi south of the state
+   line), so that query is issued with explicit GNIS coordinates. */
 const CENTERS=[
-  {label:'Burns, OR',      short:'Burns',       lat:43.5863,       lng:-119.0541,     mi:500},
-  {label:'Cedar City, UT', short:'Cedar City',  lat:37.6773637,    lng:-113.0617596,  mi:500}
+  {label:'Burns, OR',      short:'Burns',      lat:43.5863,    lng:-119.0541,    mi:500},
+  {label:'Cedar City, UT', short:'Cedar City', lat:37.6773637, lng:-113.0617596, mi:500},
+  {label:'Redig, ND/SD',   short:'Redig',      lat:45.271103,  lng:-103.5482463, mi:500}
 ];
 const CENTER=CENTERS[0];
 
@@ -341,7 +345,7 @@ const RAW=[
 [182,"St. Lawrence Orthodox Church","GOA","Felton","CA",37.0509917,-122.0730344],
 [183,"St. John the Baptist Church","GOA","Carmel-by-the-Sea","CA",36.916803,-121.763338],
 [184,"Prophet Elias Church","GOA","Santa Cruz","CA",36.973855,-122.02844],
-/* ---- added from the Cedar City, UT 500-mi proximity search ---- */
+/* ---- Cedar City, UT 500-mi proximity search ---- */
 [185,"SS. Cleopa and Paisie Mission","OCA","Brian Head","UT",37.6927551,-112.8507766],
 [186,"St. George Mission","Antiochian","St. George","UT",37.12486,-113.5297],
 [187,"All Saints Church","ROCOR","Las Vegas","NV",36.2036027,-115.2099199],
@@ -504,7 +508,35 @@ const RAW=[
 [344,"St Stephen Nemanja Serbian Orthodox Church","Serbian","Bisbee","AZ",31.4230258,-109.8860097],
 [345,"St. James Church","Antiochian","Fort Collins","CO",40.55093,-104.9975],
 [346,"Holy Dormition Church","OCA","Calhan","CO",39.0307847,-104.2936721],
-[347,"St. Seraphim of Sarov Church","ROCOR","Seaside","CA",36.6015138,-121.8508143]
+[347,"St. Seraphim of Sarov Church","ROCOR","Seaside","CA",36.6015138,-121.8508143],
+/* ---- Redig (ND/SD line) 500-mi proximity search: 27 new ---- */
+[348,"St. John the Theologian Church","Antiochian","Rapid City","SD",44.06428,-103.2284],
+[349,"Holy Resurrection Church","Antiochian","Gillette","WY",44.2884,-105.5027],
+[350,"St. Basil the Great Mission","Antiochian","Bismarck","ND",46.82789,-100.793],
+[351,"Holy Trinity Church","GOA","Casper","WY",42.889576,-106.35696],
+[352,"St. Peter the Aleut Church","OCA","Minot","ND",48.235265,-101.2839831],
+[353,"Assumption Church","GOA","Bayard","NE",41.758792,-103.322744],
+[354,"St. Nicholas of South Canaan Church","OCA","Billings","MT",45.7812904,-108.5257708],
+[355,"Holy Apostles Church","GOA","Cheyenne","WY",41.205756,-104.836312],
+[356,"Sts. Constantine & Helen Church","GOA","Cheyenne","WY",41.140871,-104.825185],
+[357,"Holy Resurrection Church","OCA","Fargo","ND",46.8997009,-96.7856688],
+[358,"All Saints Orthodox Church","ROCOR","Fargo","ND",46.9096345,-96.7869568],
+[359,"Holy Transfiguration Church","GOA","Sioux Falls","SD",43.527482,-96.735797],
+[360,"All Saints Serbian Orthodox Mission","Serbian","Lennox","SD",43.374155,-96.788245],
+[361,"St. George Church","Antiochian","Kearney","NE",40.68936,-99.07203],
+[362,"Holy Annunciation Mission","ROCOR","Sioux City","IA",42.4954772,-96.4045124],
+[363,"Holy Trinity Church","GOA","Sioux City","IA",42.496024,-96.398933],
+[364,"All Saints of North America Mission","OCA","Bemidji","MN",47.4807624,-94.8808919],
+[365,"Holy Myrrhbearers Church","OCA","Saint Cloud","MN",45.5535415,-94.1577052],
+[366,"St. John of Kronstadt Church","OCA","Lincoln","NE",40.8282616,-96.6808384],
+[367,"Annunciation Church","GOA","Lincoln","NE",40.822667,-96.634222],
+[368,"St. Mary Church","Antiochian","Omaha","NE",41.29708,-96.07407],
+[369,"All Holy Spirit Church","GOA","Elkhorn","NE",41.201702,-96.12281],
+[370,"St. Vincent of Lerins Church","Antiochian","Omaha","NE",41.28164,-95.99299],
+[371,"Holy Cross Western-Rite Orthodox Church","ROCOR","Ralston","NE",41.2012537,-96.0504596],
+[372,"St. John the Baptist Church","GOA","Omaha","NE",41.254063,-95.956036],
+[373,"St Nicholas Serbian Orthodox Church","Serbian","Omaha","NE",41.191812,-95.992189],
+[374,"St. Mary's Church Greek Orthodox Church","GOA","Minneapolis","MN",44.939605,-93.302955]
 ];
 const JUR={
   'GOA':{full:'Greek Orthodox Archdiocese of America',color:'#4dabf7'},
@@ -687,7 +719,48 @@ lonepine:[36.6063,-118.0629], bishop:[37.3635,-118.3997], salinas:[36.6777,-121.
 monterey:[36.6002,-121.8947], carmel:[36.5552,-121.9233], sandiego:[32.7157,-117.1611],
 chulavista:[32.6401,-117.0842], elcajon:[32.7948,-116.9625], escondido:[33.1192,-117.0864],
 oceanside:[33.1959,-117.3795], carlsbad:[33.1581,-117.3506], elcentro:[32.7920,-115.5631],
-hemet:[33.7475,-116.9720]
+hemet:[33.7475,-116.9720],
+/* --- Montana (east) --- */
+livingston:[45.6616,-110.5610], bigtimber:[45.8247,-109.9452], roundup:[46.4452,-108.5418],
+billings:[45.7833,-108.5007], hardin:[45.7322,-107.6076], milescity:[46.4083,-105.8406],
+glendive:[47.1053,-104.7125], sidneymt:[47.7167,-104.1563], bakermt:[46.3669,-104.2763],
+/* --- Wyoming (east) --- */
+gillette:[44.2911,-105.5022], sheridan:[44.7972,-106.9562], buffalowy:[44.3483,-106.6992],
+casper:[42.8666,-106.3131], douglaswy:[42.7597,-105.3822], newcastlewy:[43.8547,-104.2047],
+sundance:[44.4044,-104.1919], torrington:[42.0625,-104.1844], wheatland:[42.0544,-104.9527],
+lusk:[42.7627,-104.4522],
+/* --- South Dakota --- */
+rapidcity:[44.0805,-103.2310], sturgis:[44.4097,-103.5107], spearfish:[44.4908,-103.8594],
+bellefourche:[44.6714,-103.8521], deadwood:[44.3767,-103.7296], lead:[44.3522,-103.7657],
+custer:[43.7667,-103.5988], hotsprings:[43.4316,-103.4744], wall:[43.9925,-102.2413],
+murdo:[43.8883,-100.7129], chamberlain:[43.8108,-99.3307], mitchell:[43.7094,-98.0298],
+siouxfalls:[43.5460,-96.7311], pierre:[44.3683,-100.3510], winner:[43.3767,-99.8582],
+mobridge:[45.5372,-100.4279], aberdeensd:[45.4647,-98.4865], watertown:[44.8994,-97.1151],
+brookings:[44.3114,-96.7984], yankton:[42.8711,-97.3973],
+/* --- North Dakota --- */
+bismarck:[46.8083,-100.7837], minot:[48.2330,-101.2923], fargo:[46.8772,-96.7898],
+grandforks:[47.9253,-97.0329], williston:[48.1470,-103.6180], dickinson:[46.8792,-102.7896],
+jamestown:[46.9105,-98.7084], valleycity:[46.9233,-98.0031], devilslake:[48.1128,-98.8651],
+rugby:[48.3689,-99.9960], bottineau:[48.8267,-100.4459], watfordcity:[47.8022,-103.2735],
+bowman:[46.1831,-103.3949], wahpeton:[46.2652,-96.6059],
+/* --- Nebraska --- */
+omaha:[41.2565,-95.9345], councilbluffs:[41.2619,-95.8608], lincoln:[40.8136,-96.7026],
+kearney:[40.6995,-99.0817], northplatte:[41.1239,-100.7654], scottsbluff:[41.8666,-103.6672],
+alliance:[42.1016,-102.8721], chadron:[42.8294,-103.0005], sidneyne:[41.1428,-102.9777],
+ogallala:[41.1281,-101.7196], mccook:[40.2019,-100.6257], hastings:[40.5861,-98.3895],
+grandisland:[40.9264,-98.3420], columbus:[41.4297,-97.3684], norfolk:[42.0283,-97.4170],
+fremont:[41.4333,-96.4981], valentine:[42.8728,-100.5509],
+/* --- Iowa --- */
+siouxcity:[42.4967,-96.4003], desmoines:[41.5868,-93.6250], ames:[42.0308,-93.6319],
+fortdodge:[42.4975,-94.1680], spencer:[43.1414,-95.1444], masoncity:[43.1536,-93.2010],
+/* --- Minnesota --- */
+minneapolis:[44.9778,-93.2650], stpaul:[44.9537,-93.0900], stcloud:[45.5579,-94.1632],
+duluth:[46.7867,-92.1005], bemidji:[47.4736,-94.8803], moorhead:[46.8739,-96.7676],
+mankato:[44.1636,-93.9994], rochester:[44.0121,-92.4802], brainerd:[46.3580,-94.2008],
+alexandria:[45.8852,-95.3775], fergusfalls:[46.2830,-96.0776], willmar:[45.1219,-95.0433],
+marshall:[44.4469,-95.7892], worthington:[43.6200,-95.5964], thiefriverfalls:[48.1191,-96.1811],
+/* --- Colorado (northeast) --- */
+fortmorgan:[40.2503,-103.8000], sterling:[40.6255,-103.2077]
 };
 /* [class, [waypoints...]]  class -> free-flow mph */
 const SPEED = { i:65, u:55, s:45, f:11 };   /* f = ferry, effective incl. queueing */
@@ -751,7 +824,7 @@ const ROADS = [
 ['f',['tahlequah','pointdefiance']],
 ['f',['porttownsend','coupeville']],
 ['f',['astoria','megler']],
-/* ===== corridors added for the Cedar City / Southwest half ===== */
+/* ===== corridors for the Cedar City / Southwest half ===== */
 ['i',['fresno','bakersfield','losangeles']],
 ['i',['losangeles','anaheim','sandiego']],
 ['i',['sandiego','escondido','temecula','corona','sanbernardino','hesperia','victorville','barstow','baker','primm','vegas','mesquite','stgeorge','cedarcity','beaver','fillmore','nephi','provo','slc']],
@@ -772,7 +845,7 @@ const ROADS = [
 ['u',['globe','safford','lordsburg']],
 ['u',['safford','clifton','springerville']],
 ['u',['bluff','monticello','moab','greenriverut']],
-['u',['greenriverut','price','spanishfork','provo']],
+['u',['greenriverut','price','santaquin','provo']],
 ['u',['vernal','roosevelt','duchesne','heber','provo']],
 ['u',['heber','parkcity','slc']],
 ['u',['flagstaff','tubacity','page','kanab','panguitch','richfield','salina','nephi','provo']],
@@ -813,7 +886,40 @@ const ROADS = [
 ['s',['denver','hotsulphur','steamboat']],
 ['s',['craig','rawlins']],
 ['u',['durango','aztec','farmington']],
-['s',['monterey','carmel']]
+['s',['monterey','carmel']],
+/* ===== corridors for the Redig / Northern Plains half ===== */
+['i',['bozeman','livingston','bigtimber','billings','hardin','sheridan','gillette','sundance','spearfish','sturgis','rapidcity','wall','murdo','chamberlain','mitchell','siouxfalls','worthington','mankato','minneapolis']],
+['i',['billings','milescity','glendive','dickinson','bismarck','jamestown','valleycity','fargo','alexandria','stcloud','minneapolis']],
+['i',['grandforks','fargo','wahpeton','brookings','siouxfalls','siouxcity','councilbluffs','omaha']],
+['i',['minneapolis','stpaul','desmoines']],
+['i',['cheyenne','sidneyne','northplatte','kearney','hastings','lincoln','omaha','councilbluffs','desmoines']],
+['i',['cheyenne','casper','buffalowy','sheridan']],
+['i',['denver','fortmorgan','sterling','sidneyne']],
+['i',['minneapolis','stpaul','duluth']],
+['u',['bismarck','minot']],
+['u',['minot','williston']],
+['u',['grandforks','devilslake','rugby','minot','williston']],
+['u',['williston','watfordcity','dickinson','bowman','bellefourche','spearfish']],
+['u',['bismarck','pierre','murdo','valentine','northplatte']],
+['u',['aberdeensd','watertown','brookings','siouxfalls']],
+['u',['rapidcity','hotsprings','chadron','alliance','scottsbluff','torrington','cheyenne']],
+['u',['omaha','fremont','columbus','grandisland','kearney','northplatte']],
+['u',['norfolk','columbus','omaha']],
+['u',['siouxcity','norfolk','siouxfalls']],
+['u',['siouxcity','spencer','mankato']],
+['u',['casper','douglaswy','lusk','newcastlewy','rapidcity']],
+['u',['billings','roundup','greatfalls']],
+['u',['minneapolis','stcloud','fergusfalls','bemidji']],
+['u',['bemidji','thiefriverfalls','grandforks']],
+['u',['duluth','brainerd','stcloud']],
+['u',['stcloud','willmar','marshall','siouxfalls']],
+['u',['mankato','rochester']],
+['u',['desmoines','fortdodge','masoncity','rochester']],
+['u',['cheyenne','torrington','scottsbluff']],
+['u',['glendive','sidneymt','williston']],
+['u',['rapidcity','bellefourche','sundance']],
+['u',['fargo','moorhead','fergusfalls']],
+['s',['huron'==='huron'?'valentine':'valentine','winner','pierre']]
 ];
 
 /* ================= GEOMETRY ================= */
@@ -1173,7 +1279,7 @@ const POP_CITIES_C = [
 [36.740,-119.790,  40000, 6],
 [37.340,-121.890,  40000, 6]
 ];
-/* ---- added for the Cedar City / Southwest half ---- */
+/* ---- Cedar City / Southwest half ---- */
 const POP_CITIES_D = [
 /* Las Vegas valley */
 [36.170,-115.140, 300000],[36.090,-115.140, 350000],[36.210,-115.120, 350000],
@@ -1269,6 +1375,91 @@ const POP_CITIES_D = [
 [40.560,-105.080,  120000,  9],
 [37.120,-113.560,   40000,  7]
 ];
+/* ---- Redig / Northern Plains half ---- */
+const POP_CITIES_E = [
+/* Rapid City / Black Hills */
+[44.081,-103.231, 74000],[44.101,-103.220, 38000],[44.130,-103.070, 18000],
+[44.490,-103.859, 12500],[44.410,-103.511, 7000],[44.671,-103.852, 5700],
+[43.766,-103.599, 2900],[43.432,-103.474, 3400],[44.377,-103.730, 1300],
+[44.352,-103.766, 3000],[43.993,-102.241, 900],[43.888,-100.713, 500],
+/* Sioux Falls */
+[43.546,-96.731, 195000],[43.590,-96.740, 60000],[43.520,-96.690, 35000],
+[43.520,-96.760, 30000],[43.610,-96.700, 25000],
+/* Fargo / Moorhead */
+[46.877,-96.790, 130000],[46.874,-96.768, 44000],[46.870,-96.900, 40000],
+[46.860,-96.830, 25000],[46.920,-96.800, 20000],
+/* Bismarck / Mandan */
+[46.808,-100.784, 74000],[46.827,-100.890, 24000],[46.790,-100.780, 15000],
+/* Minot */
+[48.233,-101.292, 47000],[48.416,-101.330, 5500],
+/* Grand Forks */
+[47.925,-97.033, 58000],[47.930,-97.020, 9000],
+/* Williston / Dickinson / Jamestown */
+[48.147,-103.618, 29000],[46.879,-102.790, 24000],[46.911,-98.708, 15500],
+[47.999,-102.550, 6000],[47.500,-102.900, 2000],
+/* Devils Lake / Rugby / Bottineau */
+[48.113,-98.865, 7000],[48.369,-99.996, 2700],[48.827,-100.446, 2200],
+/* Aberdeen / Watertown / Brookings / Mitchell / Huron / Pierre */
+[45.465,-98.487, 28000],[44.899,-97.115, 22000],[44.311,-96.798, 24000],
+[43.709,-98.030, 16000],[44.363,-98.214, 14000],[44.368,-100.351, 14000],
+[45.537,-100.428, 3500],[43.377,-99.858, 2900],[43.811,-99.331, 2500],
+[42.871,-97.397, 15000],[44.010,-97.120, 2000],[45.220,-96.700, 1500],
+/* Wyoming east */
+[41.140,-104.820, 65000],[41.210,-104.836, 32000],[41.311,-105.591, 32000],
+[42.867,-106.313, 58000],[42.850,-106.370, 4000],[44.291,-105.502, 32000],
+[44.797,-106.956, 18000],[44.348,-106.699, 4600],[42.760,-105.382, 6400],
+[43.855,-104.205, 3400],[44.404,-104.192, 1200],[42.062,-104.184, 6500],
+[42.054,-104.953, 3600],[42.763,-104.452, 1500],[43.025,-108.380, 11000],
+/* Montana east */
+[45.783,-108.501, 117000],[45.800,-108.600, 40000],[46.408,-105.841, 8300],
+[47.105,-104.713, 4800],[47.717,-104.156, 6500],[46.367,-104.276, 1800],
+[45.732,-107.608, 3800],[45.662,-110.561, 8000],[46.445,-108.542, 1900],
+/* Nebraska */
+[41.257,-95.935, 460000],[41.280,-96.100, 200000],[41.202,-96.123, 180000],
+[41.140,-95.890, 120000],[41.262,-95.861, 62000],[41.150,-96.040, 80000],
+[40.814,-96.703, 290000],[40.750,-96.680, 55000],[40.700,-99.082, 34000],
+[40.586,-98.390, 25000],[40.926,-98.342, 53000],[41.124,-100.765, 24000],
+[41.867,-103.667, 15000],[42.102,-102.872, 8000],[42.829,-103.001, 5500],
+[40.202,-100.626, 7500],[42.028,-97.417, 25000],[41.430,-97.368, 24000],
+[41.433,-96.498, 26000],[42.873,-100.551, 2800],[41.128,-101.720, 4500],
+[41.143,-102.978, 6500],[42.100,-103.000, 3000],
+/* Iowa */
+[42.497,-96.400, 85000],[42.470,-96.410, 13000],[41.587,-93.625, 215000],
+[41.577,-93.711, 68000],[41.727,-93.606, 67000],[41.627,-93.712, 45000],
+[42.031,-93.632, 66000],[42.498,-94.168, 24000],[43.141,-95.144, 11000],
+[43.154,-93.201, 27000],[42.470,-94.500, 3000],
+/* Twin Cities */
+[44.978,-93.265, 430000],[44.954,-93.090, 310000],[44.840,-93.300, 90000],
+[45.090,-93.360, 86000],[45.010,-93.460, 81000],[44.920,-92.960, 75000],
+[45.070,-93.460, 70000],[44.850,-93.470, 64000],[45.120,-93.290, 63000],
+[45.160,-93.230, 70000],[44.770,-93.280, 63000],[44.800,-93.170, 68000],
+[44.650,-93.240, 70000],[44.920,-93.500, 53000],[44.890,-93.350, 53000],
+[44.950,-93.370, 50000],[44.880,-93.280, 37000],[45.010,-93.160, 36000],
+[44.950,-92.990, 40000],[44.830,-92.940, 38000],[44.800,-93.530, 45000],
+[44.710,-93.420, 27000],[45.190,-93.400, 25000],[45.250,-93.290, 33000],
+[45.090,-93.260, 30000],[45.080,-93.010, 25000],[45.050,-92.810, 20000],
+[45.280,-92.980, 20000],[44.740,-92.850, 23000],[44.740,-93.120, 25000],
+[44.850,-93.040, 35000],[45.110,-93.210, 13000],[44.920,-93.410, 19000],
+[45.050,-93.300, 120000],
+/* rest of Minnesota */
+[46.787,-92.101, 86000],[46.720,-92.100, 27000],[47.474,-94.880, 15000],
+[46.358,-94.201, 14000],[46.283,-96.078, 14000],[45.885,-95.378, 15000],
+[45.122,-95.043, 21000],[44.447,-95.789, 14000],[43.620,-95.596, 13000],
+[48.119,-96.181, 9000],[45.558,-94.163, 68000],[45.620,-94.210, 20000],
+[44.164,-93.999, 45000],[44.180,-94.030, 15000],[44.012,-92.480, 120000],
+[44.050,-92.500, 40000],[47.000,-93.500, 4000],[46.400,-94.000, 3000],
+/* Colorado northeast */
+[40.250,-103.800, 11000],[40.626,-103.208, 13000],[40.180,-103.500, 3000],
+/* metro halos */
+[44.960,-93.220, 700000, 15],
+[41.230,-96.020, 180000, 9],
+[43.560,-96.740, 70000, 7],
+[46.880,-96.800, 60000, 7],
+[44.070,-103.200, 40000, 7],
+[45.790,-108.500, 45000, 8],
+[40.810,-96.680, 60000, 7],
+[46.810,-100.780, 35000, 7]
+];
 
 /* ==================== POPULATION FIELD ==================== */
 /* ---- source selection ----
@@ -1276,14 +1467,15 @@ const POP_CITIES_D = [
    POP_SRC = 'data:image/png;base64,...' -> use a real GHS-POP raster.
    See resamplePopRaster() for the expected encoding. */
 const POP_SRC = null;
-const POP_GRID = {lon0:-130, lon1:-104, lat0:30, lat1:52, gw:440, gh:320, unit:4};
+const POP_GRID = {lon0:-130, lon1:-90, lat0:28, lat1:54, gw:440, gh:320, unit:4};
 
-const POP_CITIES = POP_CITIES_A.concat(POP_CITIES_B, POP_CITIES_C, POP_CITIES_D);
+const POP_CITIES = POP_CITIES_A.concat(POP_CITIES_B, POP_CITIES_C, POP_CITIES_D, POP_CITIES_E);
 /* Best estimate of the true resident population inside the union of the
-   two 500-mi rings: OR 4.24 + WA 7.71 + ID 2.0 + NV 3.2 + UT 3.5 + CA 39
-   + AZ 7.5 + CO 5.9 + NM 2.1 + W(WY 0.58 + MT 0.7) + BC ~3 = ~80M.
-   Kernels carry ~56M, the residual tops it up to the target. */
-const POP_TARGET = 70e6;
+   three 500-mi rings: OR 4.24 + WA 7.71 + ID 2.0 + NV 3.2 + UT 3.5 + CA 39
+   + AZ 7.5 + CO 5.9 + NM 2.1 + SD 0.9 + ND 0.78 + NE 2.0 + MN 5.0
+   + IA 1.5 + E.WY 0.4 + E.MT 0.5 + BC 3 = ~90M. Kernels carry ~66M, the
+   residual tops it up to the target. */
+const POP_TARGET = 82e6;
 
 /* Crude Pacific / BC / Baja coastline: westernmost land longitude by
    latitude. Only purpose is to stop the rural field from putting people
@@ -1528,7 +1720,7 @@ const offJuris=new Set();
 let domain=null, vb=null;
 let mode='drive';
 let offroadMph=14;
-const GRID_W=480, PASSES=6;
+const GRID_W=560, PASSES=6;
 
 /* --- basin results --- */
 let basinHref='', basinG=null, basinDirty=true;
@@ -1673,27 +1865,59 @@ function basinCanvas(lab,gw,gh,colorOf){
 /* ============ crow-flies comparison (population too) ============ */
 function rebuildCrow(){
   crowCells=computeCells(visible(),domain);
-  popMeta=popMeta||buildPopField(domain,gridFor(domain,GRID_W));
   const G=gridFor(domain,GRID_W);
+  popMeta=buildPopField(domain,G);
   const popField=popMeta.field;
   const {gw,gh,cw,ch}=G;
-  /* assign each population cell to its nearest site (crow-flies) */
+
   const n=crowCells.length;
   const sxs=new Float64Array(n), sys=new Float64Array(n), sid=new Int32Array(n);
   for(let s=0;s<n;s++){ sxs[s]=crowCells[s].site.x; sys[s]=crowCells[s].site.y; sid[s]=crowCells[s].site.p.id; }
+
+  /* Bucket the sites so nearest-site lookup is a local search instead of a
+     full O(n) scan per cell - with 374 sites over ~300k cells that is the
+     difference between instant and several seconds. */
+  const bs=Math.max(0.25,(domain.x1-domain.x0)/72);
+  const nbx=Math.max(1,Math.ceil((domain.x1-domain.x0)/bs));
+  const nby=Math.max(1,Math.ceil((domain.y1-domain.y0)/bs));
+  const buckets=new Array(nbx*nby);
+  for(let s=0;s<n;s++){
+    const bx=Math.min(nbx-1,Math.max(0,Math.floor((sxs[s]-domain.x0)/bs)));
+    const by=Math.min(nby-1,Math.max(0,Math.floor((sys[s]-domain.y0)/bs)));
+    const k=by*nbx+bx;
+    (buckets[k]||(buckets[k]=[])).push(s);
+  }
+  const maxRing=Math.max(nbx,nby);
   const ppl=new Map(); let tot=0;
   for(let j=0;j<gh;j++){
     const y=domain.y0+(j+0.5)*ch;
+    const by=Math.min(nby-1,Math.max(0,Math.floor((y-domain.y0)/bs)));
     const row=j*gw;
     for(let i=0;i<gw;i++){
       const pv=popField[row+i];
       if(pv<=0) continue;
       const x=domain.x0+(i+0.5)*cw;
-      let best=-1,bi=Infinity;
-      for(let s=0;s<n;s++){
-        const dx=sxs[s]-x, dy=sys[s]-y;
-        const d=dx*dx+dy*dy;
-        if(d<bi){ bi=d; best=s; }
+      const bx=Math.min(nbx-1,Math.max(0,Math.floor((x-domain.x0)/bs)));
+      let best=-1, bd=Infinity;
+      for(let r=0;r<=maxRing;r++){
+        for(let dy=-r;dy<=r;dy++){
+          const yy=by+dy; if(yy<0||yy>=nby) continue;
+          const onEdge=(Math.abs(dy)===r);
+          for(let dx=-r;dx<=r;dx++){
+            if(!onEdge && Math.abs(dx)!==r) continue;
+            const xx=bx+dx; if(xx<0||xx>=nbx) continue;
+            const arr=buckets[yy*nbx+xx];
+            if(!arr) continue;
+            for(let t=0;t<arr.length;t++){
+              const s=arr[t];
+              const ddx=sxs[s]-x, ddy=sys[s]-y;
+              const d=ddx*ddx+ddy*ddy;
+              if(d<bd){ bd=d; best=s; }
+            }
+          }
+        }
+        /* buckets at ring r+1 cannot beat a site closer than r*bs */
+        if(best>=0 && Math.sqrt(bd)<=r*bs) break;
       }
       if(best>=0){ const id=sid[best]; ppl.set(id,(ppl.get(id)||0)+pv); tot+=pv; }
     }
