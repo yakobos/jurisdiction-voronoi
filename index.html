@@ -54,6 +54,7 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
 .pin.custom{stroke:#fff;stroke-dasharray:2 2}
 .ring{fill:none;stroke:#9fd4ff;stroke-width:1.5;stroke-dasharray:6 6;vector-effect:non-scaling-stroke;opacity:.8;pointer-events:none}
 .centerMark{fill:none;stroke:#fff;stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.95;pointer-events:none}
+.border{fill:none;stroke:#7f8fa6;stroke-width:1.15;vector-effect:non-scaling-stroke;opacity:.7;pointer-events:none}
 .labels{fill:#fff;text-anchor:middle;dominant-baseline:middle;font-weight:650;letter-spacing:.01em;paint-order:stroke;stroke:#04070c;stroke-linejoin:round;pointer-events:none}
 .labels .lp{font-weight:500;fill:#dbe7f5}
 .attrib{position:absolute;left:12px;bottom:10px;font-size:9.5px;color:#a8b8cc;opacity:.8;pointer-events:none;text-shadow:0 1px 2px #000;letter-spacing:.02em}
@@ -101,15 +102,20 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
       <h2 class="sec">Hidden <button id="restoreAll" class="mini">restore all</button></h2>
       <div id="hiddenList"></div>
     </div>
-    <div id="sbFoot">Click a dot to hide it &middot; click the map to add a parish<br>Drag to pan &middot; scroll to zoom &middot; dashed rings = the three 500-mi searches</div>
+    <div id="sbFoot">Click a dot to hide it &middot; click the map to add a parish<br>Drag to pan &middot; scroll to zoom &middot; RING / NAME toggle the annotations &middot; basins stop at the lower-48 border</div>
   </aside>
   <main id="mapWrap">
     <svg id="map" xmlns="http://www.w3.org/2000/svg">
-      <defs><clipPath id="ringClip"><path id="ringClipPath" d=""/></clipPath></defs>
+      <defs>
+        <clipPath id="ringClip"><path id="ringClipPath" d=""/></clipPath>
+        <clipPath id="conusClip"><path id="conusClipPath" d=""/></clipPath>
+      </defs>
       <g id="tileLayer"></g>
       <rect id="scrim" x="0" y="0" width="1" height="1" fill="#04070c" opacity="0" pointer-events="none"/>
-      <image id="basinImg" clip-path="url(#ringClip)" preserveAspectRatio="none" opacity="0.6" pointer-events="none" style="image-rendering:auto"></image>
-      <g id="crowLayer" clip-path="url(#ringClip)"></g>
+      <g clip-path="url(#ringClip)">
+        <image id="basinImg" clip-path="url(#conusClip)" preserveAspectRatio="none" opacity="0.6" pointer-events="none" style="image-rendering:auto"></image>
+        <g id="crowLayer" clip-path="url(#conusClip)"></g>
+      </g>
       <g id="overlay"></g>
     </svg>
     <div id="attrib" class="attrib"></div>
@@ -117,6 +123,8 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
     <div id="ctrls">
       <button id="mode" class="wide act" title="Toggle drive-time / crow-flies">DRIVE</button>
       <button id="prov" class="wide" title="Cycle basemap">SAT</button>
+      <button id="ringBtn" class="wide act" title="Show / hide the 500-mi search rings">RING</button>
+      <button id="lblBtn" class="wide act" title="Show / hide parish names and populations">NAME</button>
       <button id="zin" title="Zoom in">+</button>
       <button id="zout" title="Zoom out">&minus;</button>
       <button id="zfit" title="Fit to all">&#10530;</button>
@@ -144,7 +152,7 @@ h2.sec{display:flex;align-items:center;justify-content:space-between;gap:8px;fon
    histogram over the co-registered population raster.
    Data: Assembly of Canonical Orthodox Bishops, three 500-mi proximity
    searches - Burns OR, Cedar City UT, and Redig (ND/SD line) - merged
-   and de-duplicated.
+   and de-duplicated. Basin field is clipped to the lower-48 boundary.
    ===================================================================== */
 
 /* The three search centres that generated the parish list.
@@ -553,6 +561,49 @@ const JUR={
 function colorOf(j){ return (JUR[j]&&JUR[j].color)||'#94a3b8'; }
 function fullName(j){ return (JUR[j]&&JUR[j].full)||j; }
 
+/* ================= LOWER-48 BOUNDARY =================
+   Coarse [lat,lng] ring, clockwise from San Diego: Pacific coast north,
+   49th parallel east, Great Lakes / St. Lawrence, Atlantic coast south,
+   Gulf coast west, Rio Grande north-west, back to San Diego.
+   Deliberately low fidelity - it exists to stop the basin field and the
+   population raster from spilling into Canada, Mexico and open water.
+   Replace with a Natural Earth / Census 1:20m extract for real fidelity;
+   nothing else in the file needs to change. */
+const CONUS=[
+[32.53,-117.12],[33.10,-117.32],[33.55,-117.80],[34.00,-118.45],[34.45,-120.45],
+[35.15,-120.68],[35.80,-121.35],[36.30,-121.90],[36.60,-121.90],[37.00,-122.20],
+[37.50,-122.51],[38.00,-122.97],[38.50,-123.24],[39.00,-123.72],[39.60,-123.79],
+[40.44,-124.40],[41.00,-124.10],[41.75,-124.20],[42.85,-124.55],[43.30,-124.35],
+[44.00,-124.10],[44.60,-124.06],[45.20,-123.97],[45.90,-123.96],[46.30,-124.05],
+[46.90,-124.06],[47.35,-124.35],[47.90,-124.65],[48.39,-124.72],[48.30,-123.50],
+[48.99,-123.00],[49.00,-120.50],[49.00,-117.03],[49.00,-116.05],[49.00,-113.00],
+[49.00,-110.00],[49.00,-107.00],[49.00,-104.00],[49.00,-101.00],[49.00,-97.23],
+[49.38,-95.15],[48.60,-94.50],[48.63,-93.85],[48.40,-92.50],[48.00,-90.00],
+[47.50,-89.50],[46.90,-89.20],[46.50,-87.60],[46.20,-84.60],[45.80,-84.75],
+[45.20,-83.40],[44.00,-82.80],[43.00,-82.42],[42.30,-80.50],[42.50,-79.10],
+[43.30,-76.20],[44.10,-76.40],[44.50,-75.20],[45.00,-74.80],[45.00,-71.50],
+[45.30,-71.10],[46.10,-70.30],[47.00,-69.20],[47.35,-68.35],[47.10,-67.80],
+[45.90,-67.70],[45.10,-67.20],[44.80,-66.95],[44.40,-68.00],[43.80,-69.80],
+[43.60,-70.20],[43.10,-70.75],[42.80,-70.85],[42.40,-70.95],[41.90,-70.30],
+[41.60,-71.20],[41.30,-72.10],[41.00,-73.10],[40.80,-73.90],[40.60,-74.05],
+[40.00,-74.05],[39.60,-74.20],[39.00,-74.85],[38.50,-75.05],[37.50,-75.70],
+[36.90,-75.95],[35.20,-75.50],[34.20,-77.95],[33.00,-79.20],[32.00,-80.90],
+[30.70,-81.45],[28.40,-80.60],[26.50,-80.05],[25.20,-80.40],[25.10,-81.10],
+[26.00,-81.75],[27.50,-82.70],[29.00,-83.00],[30.00,-84.30],[30.30,-87.50],
+[30.60,-88.10],[30.20,-89.00],[29.20,-89.40],[29.50,-92.50],[29.80,-93.80],
+[29.30,-94.80],[27.80,-97.20],[26.00,-97.15],[26.50,-99.00],[29.50,-101.30],
+[31.80,-106.50],[32.00,-108.20],[31.33,-111.05],[32.50,-114.80]
+];
+/* even-odd ray cast; CONUS is a simple closed ring so this is exact */
+function inCONUS(lat,lng){
+  let inside=false;
+  for(let i=0,j=CONUS.length-1;i<CONUS.length;j=i++){
+    const yi=CONUS[i][0], xi=CONUS[i][1], yj=CONUS[j][0], xj=CONUS[j][1];
+    if(((yi>lat)!==(yj>lat)) && (lng < (xj-xi)*(lat-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+
 /* Hand-built corridor graph: waypoints on the major highway network.
    NOT OSM. See notes - swap for a real extract and nothing else changes. */
 const PLACES = {
@@ -919,7 +970,7 @@ const ROADS = [
 ['u',['glendive','sidneymt','williston']],
 ['u',['rapidcity','bellefourche','sundance']],
 ['u',['fargo','moorhead','fergusfalls']],
-['s',['huron'==='huron'?'valentine':'valentine','winner','pierre']]
+['s',['valentine','winner','pierre']]
 ];
 
 /* ================= GEOMETRY ================= */
@@ -949,6 +1000,9 @@ function inAnyRing(lat,lng){
   for(const c of CENTERS) if(haversine(c,{lat,lng})<=c.mi) return true;
   return false;
 }
+/* Land test = inside the lower-48 ring. Replaces the old hand-tabulated
+   coastline, and additionally keeps population out of Canada and Mexico. */
+function isLand(lat,lng){ return inCONUS(lat,lng); }
 
 /* ================= GRID ================= */
 function gridFor(bounds,targetW){
@@ -1471,43 +1525,11 @@ const POP_GRID = {lon0:-130, lon1:-90, lat0:28, lat1:54, gw:440, gh:320, unit:4}
 
 const POP_CITIES = POP_CITIES_A.concat(POP_CITIES_B, POP_CITIES_C, POP_CITIES_D, POP_CITIES_E);
 /* Best estimate of the true resident population inside the union of the
-   three 500-mi rings: OR 4.24 + WA 7.71 + ID 2.0 + NV 3.2 + UT 3.5 + CA 39
-   + AZ 7.5 + CO 5.9 + NM 2.1 + SD 0.9 + ND 0.78 + NE 2.0 + MN 5.0
-   + IA 1.5 + E.WY 0.4 + E.MT 0.5 + BC 3 = ~90M. Kernels carry ~66M, the
-   residual tops it up to the target. */
+   three 500-mi rings, clipped to CONUS: OR 4.24 + WA 7.71 + ID 2.0
+   + NV 3.2 + UT 3.5 + CA 39 + AZ 7.5 + CO 5.9 + NM 2.1 + SD 0.9 + ND 0.78
+   + NE 2.0 + MN 5.0 + IA 1.5 + E.WY 0.4 + E.MT 0.5 = ~84M. Kernels carry
+   ~66M, the residual tops it up to the target. */
 const POP_TARGET = 82e6;
-
-/* Crude Pacific / BC / Baja coastline: westernmost land longitude by
-   latitude. Only purpose is to stop the rural field from putting people
-   in the ocean. */
-const COAST = [
- [31.0,-116.5],[31.5,-116.6],[32.0,-117.1],[32.5,-117.15],[33.0,-117.28],
- [33.5,-117.80],[34.0,-118.50],[34.5,-120.50],[35.0,-120.70],[35.5,-121.00],
- [36.0,-121.9],[36.6,-121.9],[37.0,-122.5],[37.5,-122.5],[38.0,-123.0],
- [38.5,-123.2],[39.0,-123.7],[39.5,-123.8],[40.0,-124.4],[40.5,-124.4],
- [41.0,-124.1],[41.5,-124.1],[42.0,-124.4],[42.5,-124.4],[43.0,-124.4],
- [43.5,-124.4],[44.0,-124.1],[44.5,-124.1],[45.0,-123.96],[45.5,-123.96],
- [46.0,-124.1],[46.5,-124.1],[47.0,-124.2],[47.5,-124.4],[48.0,-124.7],
- [48.4,-124.6],[49.0,-123.3],[49.3,-123.2],[49.8,-123.4],[50.5,-124.0],
- [51.2,-124.6]
-];
-function coastLon(lat){
-  if(lat<=COAST[0][0]) return COAST[0][1];
-  for(let i=0;i<COAST.length-1;i++){
-    const a=COAST[i], b=COAST[i+1];
-    if(lat>=a[0] && lat<=b[0]){
-      const t=(lat-a[0])/(b[0]-a[0]);
-      return a[1]+t*(b[1]-a[1]);
-    }
-  }
-  return COAST[COAST.length-1][1];
-}
-function isLand(lat,lng){
-  if(lng > coastLon(lat)) return true;
-  /* Vancouver Island: a box approximation, west of the mainland coast */
-  if(lat>=48.3 && lat<=51.0 && lng>=-126.8 && lng<=-123.25) return true;
-  return false;
-}
 
 /* sigma chosen so that peak density is roughly constant (~1.0k/km2), which
    is what real urban areas look like. Scaling sigma as sqrt(pop) keeps
@@ -1720,6 +1742,7 @@ const offJuris=new Set();
 let domain=null, vb=null;
 let mode='drive';
 let offroadMph=14;
+let showRings=true, showLabels=true;
 const GRID_W=560, PASSES=6;
 
 /* --- basin results --- */
@@ -1743,6 +1766,10 @@ const RINGS=CENTERS.map(c=>{
   return {c, pts, d:'M'+pts.map(q=>q.x.toFixed(3)+' '+q.y.toFixed(3)).join('L')+'Z'};
 });
 document.getElementById('ringClipPath').setAttribute('d', RINGS.map(r=>r.d).join(''));
+
+/* Lower-48 outline, in projected space, used both as a clip and as a stroke. */
+const CONUS_PATH='M'+CONUS.map(p=>{const q=proj(p[0],p[1]); return q.x.toFixed(3)+' '+q.y.toFixed(3);}).join('L')+'Z';
+document.getElementById('conusClipPath').setAttribute('d', CONUS_PATH);
 
 /* Domain = parish extent UNION every ring */
 function computeDomain(){
@@ -1875,8 +1902,7 @@ function rebuildCrow(){
   for(let s=0;s<n;s++){ sxs[s]=crowCells[s].site.x; sys[s]=crowCells[s].site.y; sid[s]=crowCells[s].site.p.id; }
 
   /* Bucket the sites so nearest-site lookup is a local search instead of a
-     full O(n) scan per cell - with 374 sites over ~300k cells that is the
-     difference between instant and several seconds. */
+     full O(n) scan per cell. */
   const bs=Math.max(0.25,(domain.x1-domain.x0)/72);
   const nbx=Math.max(1,Math.ceil((domain.x1-domain.x0)/bs));
   const nby=Math.max(1,Math.ceil((domain.y1-domain.y0)/bs));
@@ -1916,7 +1942,6 @@ function rebuildCrow(){
             }
           }
         }
-        /* buckets at ring r+1 cannot beat a site closer than r*bs */
         if(best>=0 && Math.sqrt(bd)<=r*bs) break;
       }
       if(best>=0){ const id=sid[best]; ppl.set(id,(ppl.get(id)||0)+pv); tot+=pv; }
@@ -1988,31 +2013,38 @@ function render(){
   const fs=11*upp, fs2=9.5*upp, pr=5.5*upp;
   const out=[];
 
-  for(const r of RINGS) out.push('<path class="ring" d="'+r.d+'"/>');
-  out.push('<g class="centerMark">');
-  for(const c of CENTERS){
-    const cp=proj(c.lat,c.lng);
-    out.push('<circle cx="'+cp.x+'" cy="'+cp.y+'" r="'+(7*upp)+'"/>'+
-      '<path d="M'+(cp.x-15*upp)+' '+cp.y+'H'+(cp.x+15*upp)+'M'+cp.x+' '+(cp.y-15*upp)+'V'+(cp.y+15*upp)+'"/>');
+  /* lower-48 outline: always drawn, it is the model's outer boundary */
+  out.push('<path class="border" d="'+CONUS_PATH+'"/>');
+
+  if(showRings){
+    for(const r of RINGS) out.push('<path class="ring" d="'+r.d+'"/>');
+    out.push('<g class="centerMark">');
+    for(const c of CENTERS){
+      const cp=proj(c.lat,c.lng);
+      out.push('<circle cx="'+cp.x+'" cy="'+cp.y+'" r="'+(7*upp)+'"/>'+
+        '<path d="M'+(cp.x-15*upp)+' '+cp.y+'H'+(cp.x+15*upp)+'M'+cp.x+' '+(cp.y-15*upp)+'V'+(cp.y+15*upp)+'"/>');
+    }
+    out.push('</g>');
   }
-  out.push('</g>');
 
   /* labels: name, and population underneath when the basin is big enough */
-  out.push('<g class="labels" style="font-size:'+fs.toFixed(2)+'px;stroke-width:'+(3*upp).toFixed(3)+'">');
-  for(const p of vis){
-    const a=anchors.get(p.id), wt=weights.get(p.id)||0;
-    if(!a) continue;
-    if(wt<3000) continue;
-    let nm=p.name;
-    if(nm.length>32) nm=nm.slice(0,31).trim()+'\u2026';
-    out.push('<text x="'+a[0].toFixed(2)+'" y="'+a[1].toFixed(2)+'">'+esc(nm)+'</text>');
-    const pv=pops.get(p.id)||0;
-    if(wt>9000 && pv>0){
-      out.push('<text class="lp" x="'+a[0].toFixed(2)+'" y="'+(a[1]+fs*1.25).toFixed(2)+
-        '" style="font-size:'+fs2.toFixed(2)+'px">'+fmtPop(pv)+'</text>');
+  if(showLabels){
+    out.push('<g class="labels" style="font-size:'+fs.toFixed(2)+'px;stroke-width:'+(3*upp).toFixed(3)+'">');
+    for(const p of vis){
+      const a=anchors.get(p.id), wt=weights.get(p.id)||0;
+      if(!a) continue;
+      if(wt<3000) continue;
+      let nm=p.name;
+      if(nm.length>32) nm=nm.slice(0,31).trim()+'\u2026';
+      out.push('<text x="'+a[0].toFixed(2)+'" y="'+a[1].toFixed(2)+'">'+esc(nm)+'</text>');
+      const pv=pops.get(p.id)||0;
+      if(wt>9000 && pv>0){
+        out.push('<text class="lp" x="'+a[0].toFixed(2)+'" y="'+(a[1]+fs*1.25).toFixed(2)+
+          '" style="font-size:'+fs2.toFixed(2)+'px">'+fmtPop(pv)+'</text>');
+      }
     }
+    out.push('</g>');
   }
-  out.push('</g>');
 
   out.push('<g>');
   for(const p of vis){
@@ -2036,7 +2068,7 @@ function renderSidebar(){
   const src = popMeta && popMeta.cities ? (POP_SRC?'GHS-POP raster':'modeled from '+popMeta.cities+' population centres') : '';
   statsEl.innerHTML='<div class="big">'+fmtPop(tot)+'</div>'+
     '<div>people in <b>'+vis.length+'</b> of <b>'+parishes.length+'</b> parishes &middot; <b>'+shown.size+'</b> of '+Object.keys(counts).length+' jurisdictions</div>'+
-    (src?'<div class="sub">'+esc(src)+(mode==='crow'?' &middot; crow-flies assignment':'')+'</div>':'');
+    (src?'<div class="sub">'+esc(src)+(mode==='crow'?' &middot; crow-flies assignment':'')+' &middot; clipped to lower 48</div>':'');
 
   const frac = mode==='drive'?basinJurFrac:crowJurFrac;
   const pfrac = mode==='drive'?basinJurPop:crowJurPop;
@@ -2248,6 +2280,20 @@ document.getElementById('prov').addEventListener('click',()=>{
   tileFailed=false; clearTiles(); render();
 });
 
+/* rings: annotation only, the clip geometry is untouched */
+document.getElementById('ringBtn').addEventListener('click',()=>{
+  showRings=!showRings;
+  document.getElementById('ringBtn').classList.toggle('act', showRings);
+  render();
+});
+
+/* labels: parish names + the population line beneath them */
+document.getElementById('lblBtn').addEventListener('click',()=>{
+  showLabels=!showLabels;
+  document.getElementById('lblBtn').classList.toggle('act', showLabels);
+  render();
+});
+
 document.getElementById('zin').addEventListener('click',()=>{ zoomAt({x:vb.x+vb.w/2,y:vb.y+vb.h/2},0.72); });
 document.getElementById('zout').addEventListener('click',()=>{ zoomAt({x:vb.x+vb.w/2,y:vb.y+vb.h/2},1/0.72); });
 document.getElementById('zfit').addEventListener('click',()=>{ fitView(); schedule(); });
@@ -2275,7 +2321,7 @@ function openCreate(q){
   const ll=unproj(q.x,q.y);
   const n=nearestCenter(ll.lat,ll.lng);
   mCoords.textContent=ll.lat.toFixed(4)+'\u00b0, '+ll.lng.toFixed(4)+'\u00b0  \u00b7  '+
-    n.d.toFixed(1)+' mi from '+n.c.label;
+    n.d.toFixed(1)+' mi from '+n.c.label+(inCONUS(ll.lat,ll.lng)?'':' (outside the lower 48)');
   mName.value=''; mJur.value='GOA';
   modal.classList.add('open');
   setTimeout(()=>mName.focus(),30);
